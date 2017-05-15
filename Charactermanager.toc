@@ -1,0 +1,9 @@
+## Interface: 70200
+## Title: CharacterManager
+## Author: Eoh
+## Version: 0.2
+## SavedVariables: _DB_, _NAMES_
+
+Libs\LegionArtifacts-1.1\LegionArtifacts-1.1.lua
+
+main.lua
