@@ -6,4 +6,4 @@
 
 Libs\LegionArtifacts-1.1\LegionArtifacts-1.1.lua
 
-main.lua
+CharacterManager.lua
