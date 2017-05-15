@@ -283,6 +283,7 @@ function target_date_to_time()
 	local target_month = 0;
 	local target_hour = 0;
 	local target_min = "??";
+
 	if _DB_[n.."akremain"] then
 		for idx, item in ipairs(tolist(string.gmatch(_DB_[n.."akremain"], "%S+"))) do -- "d-m-h"
 			if idx == 1 then
@@ -296,9 +297,10 @@ function target_date_to_time()
 
 			elseif idx == 4 then
 				target_min = item;
-
 			end
 		end
+
+		--print("target date: " .. target_day .. "." .. target_month .. "  " .. target_hour .. ":" .. target_min);
 
 		local current_day;
 		local current_month;
@@ -316,8 +318,10 @@ function target_date_to_time()
 			end
 		end
 
+		--print("current date: " .. current_day .. "." .. current_month .. "  " .. current_hour .. ":" .. current_minute);
+
 		if tonumber(current_day) ~= tonumber(target_day) then
-			if not string.match(target_min, "??") and tonumber(target_min) < 10 then
+			if tostring(target_min) ~= "??" and tonumber(target_min) < 10 then
 				target_min = "0" .. target_min;
 			end
 
@@ -325,7 +329,7 @@ function target_date_to_time()
 				current_minutes = "0" .. current_minute;
 			end
 
-			if string.match(target_min, "??") then
+			if tostring(target_min) == "??" then
 				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. " (" .. target_day .. "." .. target_month .. " " .. target_hour .. " h)";
 			else
 				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. " (" .. target_day .. "." .. target_month .. " " .. target_hour .. ":" .. target_min .. ")";
@@ -357,7 +361,7 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 
 	-- case min2 contains "??"
 	-- just days and hr
-	if string.match(min2, "??") then
+	if tostring(min2) == "??" then
 		-- case same month
 		if tonumber(m1) == tonumber(m2) then
 			d =  tonumber(d2) - tonumber(d1);
@@ -380,7 +384,10 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 	-- case d1 == d2 => m1 == m2
 	-- just hr and min
 	elseif tonumber(d1) == tonumber(d2) then
-		s = s .. math.abs(tonumber(h2)-tonumber(h1)) .. " h"; 
+		s = s .. math.abs(tonumber(h2)-tonumber(h1)) .. " h "; 
+		s = s .. math.abs(tonumber(min1)-tonumber(min2)) .. " min";  
+	else 
+		s = s .. tostring(24 - tonumber(h1) + h2) .. " h ";
 		s = s .. math.abs(tonumber(min1)-tonumber(min2)) .. " min";  
 	end
 	
@@ -563,7 +570,6 @@ function akremain_update()
 
     if tlStr then
 		local lst = tolist(string.gmatch(tlStr, "%S+"));
-
 		 -- days and hr
 		if string.match(lst[2], "days") and string.match(lst[4], "hr") then
 		    for idx, item in ipairs(lst) do
@@ -630,13 +636,13 @@ function akremain_update()
 		local target_month = current_month;
 		local target_hour = current_hour + tonumber(remaining_hours);
 
-		if not string.match(remaining_minutes, "??") then
+		if tostring(remaining_minutes) ~= "??" then
 			target_min = current_minutes + remaining_minutes;
 		else 
 			target_min = remaining_minutes;
 		end
 		
-		if not string.match(target_min, "??") and target_min > 60 then
+		if tostring(target_min) ~= "??" and target_min > 60 then
 			target_min = target_min - 60;
 			target_hour = target_hour + 1;
 		end
@@ -662,7 +668,7 @@ function akremain_update()
 		time_string = target_day .. " " .. target_month .. " " .. target_hour .. " " .. target_min;
 
 		if time_string then 
-			--print("updating: " .. time_string);
+			--print("updating timestring: " .. time_string);
 			_DB_[pname .. "akremain"] = time_string; 
 		end
 	 	
@@ -747,3 +753,4 @@ end
 -- TODO 
 -- wq oneshot?
 -- auf aktuellem char auslesen, ob AK rdy
+-- split files
