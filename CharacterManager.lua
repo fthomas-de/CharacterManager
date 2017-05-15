@@ -631,7 +631,7 @@ function akremain_update()
     if tlStr then
 		local lst = tolist(string.gmatch(tlStr, "%S+"));
 		 -- days and hr
-		if string.match(lst[2], "days") and string.match(lst[4], "hr") then
+		if lst[4] and lst[2] and string.match(lst[2], "days") and string.match(lst[4], "hr") then
 		    for idx, item in ipairs(lst) do
 		    	if idx == 1 then
 		    		remaining_days = item;
@@ -642,7 +642,7 @@ function akremain_update()
 		    remaining_minutes = "??";
 
 		-- days only because hours == 0
-		elseif string.match(lst[2], "days") then
+		elseif lst[2] and string.match(lst[2], "days") then
 		    for idx, item in ipairs(lst) do
 		    	if idx == 1 then
 		    		remaining_days = item;
@@ -652,7 +652,7 @@ function akremain_update()
 		    remaining_minutes = "??";
 
 		-- hr and mins
-		elseif string.match(lst[2], "hr") and string.match(lst[4], "min") then
+		elseif lst[2] and lst[4] and string.match(lst[2], "hr") and string.match(lst[4], "min") then
 		    for idx, item in ipairs(lst) do
 		    	if idx == 1 then
 		    		remaining_hours = item;
@@ -662,7 +662,7 @@ function akremain_update()
 		    end
 
 		-- mins only because hrs == 0
-		elseif string.match(lst[2], "min") then 
+		elseif lst[2] and dstring.match(lst[2], "min") then 
 			for idx, item in ipairs(lst) do
 		    	if idx == 1 then
 		    		remaining_minutes = item;
