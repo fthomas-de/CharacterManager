@@ -342,12 +342,16 @@ function target_date_to_time()
 		for idx, item in ipairs(tolist(string.gmatch(date("%d %m %H %M"), "%S+"))) do
 			if idx == 1 then 
 				current_day = tonumber(item);
+
 			elseif idx == 2 then
 				current_month = tonumber(item);
+
 			elseif idx == 3 then 
 				current_hour = tonumber(item); 
+
 			elseif idx == 4 then
 				current_minute = tonumber(item);
+
 			end
 		end
 
@@ -400,10 +404,10 @@ function target_date_to_time()
 
 			local h = tonumber(target_hour) - tonumber(current_hour);
 
-			local m = tonumber(target_min) - tonumber(current_minute);
-			if m < 0 then
-				h = h + 1;
-				m = math.abs(m);
+			local m = 60 - tonumber(current_minute) + tonumber(target_min);
+
+			if tonumber(target_min) < tonumber(current_minute) then
+				h = h - 1;
 			end
 
 
@@ -444,11 +448,29 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 	-- case d1 == d2 => m1 == m2
 	-- just hr and min
 	elseif tonumber(d1) == tonumber(d2) then
-		s = s .. math.abs(tonumber(h2)-tonumber(h1)) .. " h "; 
-		s = s .. math.abs(tonumber(min1)-tonumber(min2)) .. " min";  
+		local h = tonumber(h2) - tonumber(h1);
+		local min = 60 - tonumber(min1) + tonumber(min2);
+
+		if min >= 60 then
+			h = h + 1;
+			min = min - 60;
+		end
+		s = s .. tostring(h) .. " h";
+		s = s .. tostring(min) .. min;
+
+
 	else 
-		s = s .. tostring(24 - tonumber(h1) + h2) .. " h ";
-		s = s .. math.abs(tonumber(min1)-tonumber(min2)) .. " min";  
+		-- different days
+		local h = 24 - tonumber(h1) + tonumber(h2);
+		local min = 60 - tonumber(min1) + tonumber(min2);
+
+		if min >= 60 then
+			h = h + 1;
+			min = min - 60;
+		end
+
+		s = s .. tostring(h) .. " h ";
+		s = s .. tostring(min) .. " min";  
 	end
 	
 	return s
@@ -742,15 +764,27 @@ function update_raidid()
 
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
-		
+
 		if name == "The Nighthold" and difficultyName == "Mythic" and locked then
-			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "M ";
-			
+			if encounterProgress < numEncounters then
+			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "M ";
+			else
+				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M ";
+			end
+
 		elseif name == "The Nighthold" and difficultyName == "Heroic" and locked then
-			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "H ";
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "H ";
+			else
+				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H ";
+			end
 
 		elseif name == "The Nighthold" and difficultyName == "Normal" and locked then
-			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "N";
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "N";
+			else
+				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N";
+			end
 
 		end
 	end
