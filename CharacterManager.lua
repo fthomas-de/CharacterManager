@@ -1,4 +1,4 @@
-local version = ".3";
+local version = ".4";
 local pname = UnitName("player");
 local _, pclass = UnitClass("player");
 local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor-HoV", "Neltharion's Lair-NL", "Blackrook Hold-BRH", "Maw of Souls-MoS", "Vault of the Wardens-VotW", "Return to Karazhan: Lower-LK", "Return to Karazhan: Upper-UK", "Cathedral of Eternal Night-CoeN", "Court of Stars-CoS", "The Arcway-TA"};
@@ -23,6 +23,7 @@ local colors = {
     ["WARRIOR"] = "|cffC79C6E",
     ["GOLD"] = "|cffffcc00",
     ["RED"] = "|cffff0000",
+    ["UNKNOWN"]  = "|cffffffff",
 };
 
 -- LIGHTRED             |cffff6060
@@ -99,6 +100,15 @@ function cm_frame:OnEvent(event, name)
 	 		table.insert(_NAMES_, pname);
 	 	end
 
+	 	-- init class
+	 	if not _DB_[pname.."cls"] then 
+	 		_DB_[pname.."cls"] = pclass;
+	 	end
+
+	 	if _DB_[pname.."cls"] == "" or _DB_[pname.."cls"] == "UNKNOWN" then 
+	 		_DB_[pname.."cls"] = pclass;
+	 	end
+
 	 	cm_frame:SetSize(300, (120 * table.getn(_NAMES_) + 50));
 		cm_frame:SetPoint("CENTER", UIParent, "CENTER")
 		cm_frame:EnableMouse(true);
@@ -159,14 +169,13 @@ end
 function build_content()
 	updates();
 
-	s = "\n";
+	local s = "\n";
 	for i=0, table.getn(_NAMES_) do 
 		n = _NAMES_[i];
 
 		if n then 
 			s = s .. colors[_DB_[n.."cls"]] .. n .. "|r" .. "\n";
-			s = s .. "Finished Key: " .. _DB_[n.."hkey"] .. "\n";
-			s = s .. "Inventory: " .. _DB_[n.."bagkey"] .. "\n";
+			s = s .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")\n";
 			s = s .. "Artifact lvl: " .. _DB_[n.."artifactlevel"] .. " (AK: " .. _DB_[n.."level"] .. ")" .. "\n";
 			s = s .. "Next AK: " .. target_date_to_time(_DB_[n.."akremain"]) .. "\n";
 			s = s .. "Seals: " .. _DB_[n.."seals"] .. "/6" .. "\n";
@@ -175,8 +184,14 @@ function build_content()
 			else
 				s = s .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "\n";	
 			end
+
 			s = s .. "Itemlevel: " .. _DB_[n.."itemlevel"] .. "/" .. _DB_[n.."itemlevelbag"] .. "\n";
 			s = s .. "OResources: " .. _DB_[n.."orderres"] .. "\n";
+			
+			if _DB_[n.."nhraidid"] ~= "-" then
+				s = s .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "\n";
+			end
+
 			if table.getn(_NAMES_) > 1 and i ~= table.getn(_NAMES_) then 
 				s = s .. "\n";
 			end
@@ -188,46 +203,61 @@ end
 
 
 function init()
+	-- init name
+	if not contains(_NAMES_, pname)  then 
+		table.insert(_NAMES_, pname);
+	end
+
+	if _NAMES_ == nil then
+		_NAMES_ = {};
+	end
+
+	for _, char_name in ipairs(_NAMES_) do 
 		-- init vars
-	 	if not _DB_[pname .. "cls"] then
-	 		_DB_[pname .. "cls"] = pclass;
+	 	if not _DB_[char_name .. "cls"] then
+	 		_DB_[char_name .. "cls"] = "UNKNOWN";
 	 	end
 
-	 	if not _DB_[pname .. "level"] then
-	 		_DB_[pname .. "level"] = 0;
+	 	if not _DB_[char_name .. "level"] then
+	 		_DB_[char_name .. "level"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "artifactlevel"] then
-	 		_DB_[pname .. "artifactlevel"] = 0;
+	 	if not _DB_[char_name .. "artifactlevel"] then
+	 		_DB_[char_name .. "artifactlevel"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "hkey"] then
-	 		_DB_[pname .. "hkey"] = 0;
+	 	if not _DB_[char_name .. "hkey"] then
+	 		_DB_[char_name .. "hkey"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "bagkey"] then
-	 		_DB_[pname .. "bagkey"] = 0;
+	 	if not _DB_[char_name .. "bagkey"] then
+	 		_DB_[char_name .. "bagkey"] = 0;
 	 	end     
 
-	 	if not _DB_[pname .. "seals"] then
-	 		_DB_[pname .. "seals"] = 0;
+	 	if not _DB_[char_name .. "seals"] then
+	 		_DB_[char_name .. "seals"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "itemlevel"] then
-	 		_DB_[pname .. "itemlevel"] = 0;
+	 	if not _DB_[char_name .. "itemlevel"] then
+	 		_DB_[char_name .. "itemlevel"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "itemlevelbag"] then
-	 		_DB_[pname .. "itemlevelbag"] = 0;
+	 	if not _DB_[char_name .. "itemlevelbag"] then
+	 		_DB_[char_name .. "itemlevelbag"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "orderres"] then
-	 		_DB_[pname .. "orderres"] = 0;
+	 	if not _DB_[char_name .. "orderres"] then
+	 		_DB_[char_name .. "orderres"] = 0;
 	 	end
 
-	 	if not _DB_[pname .. "akremain"] then
-	 		_DB_[pname .. "akremain"] = "0 0 0 0";
+	 	if not _DB_[char_name .. "akremain"] then
+	 		_DB_[char_name .. "akremain"] = "0 0 0 0";
 	 	end
+
+	 	if not _DB_[char_name .. "nhraidid"] then
+	 		_DB_[char_name .. "nhraidid"] = "?";
+	 	end
+	 end
 end
 
 
@@ -243,6 +273,9 @@ function updates()
 	bagkey_update();
 	hkey_update();
 	akremain_update();
+	update_raidid();
+
+	new_shit();
 end
 
 
@@ -320,7 +353,25 @@ function target_date_to_time()
 
 		--print("current date: " .. current_day .. "." .. current_month .. "  " .. current_hour .. ":" .. current_minute);
 
-		if tonumber(current_day) ~= tonumber(target_day) then
+		-- in the past
+		-- today
+		if tonumber(current_day) == tonumber(target_day) and tonumber(current_hour) > tonumber(target_hour) then
+			return colors["GOLD"] .. "PICK IT UP!" .. "|r";
+
+		-- today last update less than 60 mins before
+		elseif target_min ~= "??" and tonumber(current_day) == tonumber(target_day) and tonumber(current_hour) == tonumber(target_hour) and tonumber(current_minute) > tonumber(target_min) then
+			return colors["GOLD"] .. "PICK IT UP!" .. "|r";
+
+		-- last month
+		elseif tonumber(current_month) > tonumber(target_month) then
+			return colors["GOLD"] .. "PICK IT UP!" .. "|r";
+
+		-- not today, this month but in the past
+		elseif tonumber(current_day) > tonumber(target_day) and tonumber(current_month) == tonumber(target_month) then
+			return colors["GOLD"] .. "PICK IT UP!" .. "|r";
+
+		-- not today, but in the future	
+		elseif tonumber(current_day) ~= tonumber(target_day) then
 			if tostring(target_min) ~= "??" and tonumber(target_min) < 10 then
 				target_min = "0" .. target_min;
 			end
@@ -330,15 +381,15 @@ function target_date_to_time()
 			end
 
 			if tostring(target_min) == "??" then
-				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. " (" .. target_day .. "." .. target_month .. " " .. target_hour .. " h)";
+				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. 
+				" (" .. target_day .. "." .. target_month .. " around " .. target_hour .. " h)";
 			else
-				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. " (" .. target_day .. "." .. target_month .. " " .. target_hour .. ":" .. target_min .. ")";
+				return time_diff(current_month, current_day, current_hour, current_minute, target_month, target_day, target_hour, target_min) .. 
+				" (" .. target_day .. "." .. target_month .. " " .. target_hour .. ":" .. target_min .. ")";
 			end
 
-		elseif target_hour - current_hour <= 0 and target_min - current_minute <= 0 then
-			return colors["GOLD"] .. "PICK IT UP!" .. "|r";
-
 		else
+			-- same day
 			if tonumber(target_min) < 10 then
 				target_min = "0" .. target_min;
 			end
@@ -347,7 +398,16 @@ function target_date_to_time()
 				current_minute = "0" .. current_minute;
 			end
 
-			return colors["GOLD"] .. "Today" .. "|r" .. " at " .. target_hour .. ":" .. target_min .. " (" .. current_hour .. ":" .. current_minute .. ")";
+			local h = tonumber(target_hour) - tonumber(current_hour);
+
+			local m = tonumber(target_min) - tonumber(current_minute);
+			if m < 0 then
+				h = h + 1;
+				m = math.abs(m);
+			end
+
+
+			return colors["GOLD"] .. "Today" .. "|r" .. " in " .. h .. " h and " .. m .. " min";
 
 		end
 	else
@@ -676,6 +736,31 @@ function akremain_update()
 end
 
 
+function update_raidid()
+	instances = GetNumSavedInstances();
+	local s = "";
+
+	for i=1, instances do
+		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
+		
+		if name == "The Nighthold" and difficultyName == "Mythic" and locked then
+			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "M ";
+			
+		elseif name == "The Nighthold" and difficultyName == "Heroic" and locked then
+			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "H ";
+
+		elseif name == "The Nighthold" and difficultyName == "Normal" and locked then
+			s = s .. tostring(numEncounters) .. "/" .. tostring(encounterProgress) .. "N";
+
+		end
+	end
+	if s == "" then 
+		s = "-";
+	end
+	_DB_[pname.."nhraidid"] = s;
+end
+
+
 function remove_character(msg)
 	local lst = tolist(string.gmatch(msg, "%S+"));
 	local cmd = lst[1];
@@ -705,6 +790,9 @@ function weekly_reset(msg)
 
 		-- reset seals obtained
 		_DB_[item.."sealsobt"] = 0;
+
+		-- reset raid ids
+		_DB_[item.."nhraidid"] = "-";
 	end
 end
 
@@ -748,6 +836,11 @@ function debug()
 	print(colors["RED"] .. "oh oh, you shouldnt do this" .. "|r")
 
 	--_NEXT_RESET_ = _NEXT_RESET_ - 172800;
+end
+
+
+function new_shit()
+	return
 end
 
 -- TODO 
