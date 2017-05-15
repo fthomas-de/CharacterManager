@@ -2,7 +2,7 @@
 ## Title: CharacterManager
 ## Author: Eoh
 ## Version: 0.2
-## SavedVariables: _DB_, _NAMES_
+## SavedVariables: _DB_, _NAMES_, _NEXT_RESET_
 
 Libs\LegionArtifacts-1.1\LegionArtifacts-1.1.lua
 

@@ -1,8 +1,12 @@
-local version = ".2";
+local version = ".3";
 local pname = UnitName("player");
 local _, pclass = UnitClass("player");
 local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor-HoV", "Neltharion's Lair-NL", "Blackrook Hold-BRH", "Maw of Souls-MoS", "Vault of the Wardens-VotW", "Return to Karazhan: Lower-LK", "Return to Karazhan: Upper-UK", "Cathedral of Eternal Night-CoeN", "Court of Stars-CoS", "The Arcway-TA"};
 local LA = LibStub:GetLibrary("LegionArtifacts-1.1")
+local week = 604800;
+local na_reset  = 1486479600;
+local eu_reset  = 1485327600;
+
 
 local colors = {
     ["DEATHKNIGHT"] = "|cffC41F3B",
@@ -86,6 +90,10 @@ function cm_frame:OnEvent(event, name)
 	 		_NAMES_ = {};
 	 	end
 
+	  	if _NEXT_RESET_ == nil then
+	 		_NEXT_RESET_ = 0;
+	 	end
+
 	 	-- init name
 	 	if not contains(_NAMES_, pname)  then 
 	 		table.insert(_NAMES_, pname);
@@ -126,11 +134,19 @@ function SlashCmdList.CM(msg)
 	if msg == "reset" then
 		_NAMES_ = {}
 		_DB_ = {}
+		_NEXT_RESET_ = 0;
 		ReloadUI();
 
 	elseif string.match(msg, "rm") then 
 		remove_character(msg);
 		ReloadUI();
+
+	elseif msg == "weekly" then 
+		weekly_reset(msg);
+		ReloadUI();
+
+	elseif msg == "debug" then
+		debug();
 
 	else
 		init();
@@ -172,7 +188,7 @@ end
 
 
 function init()
-		 	-- init vars
+		-- init vars
 	 	if not _DB_[pname .. "cls"] then
 	 		_DB_[pname .. "cls"] = pclass;
 	 	end
@@ -216,6 +232,8 @@ end
 
 
 function updates()
+	check_for_id_reset();
+
 	seals_update();
 	seals_obtained_update();
 	level_update();
@@ -586,8 +604,8 @@ function akremain_update()
 		    end
 
 		else
-			print("No matching time found, AK research may be wrong for this Char");
-			print("DEBUGINFO: >" .. tostring(lst[2]) .. "<" .. " and " .. ">" .. tostring(lst[4]) .. "<");
+			--print("No matching time found, AK research may be wrong for this Char");
+			--print("DEBUGINFO: >" .. tostring(lst[2]) .. "<" .. " and " .. ">" .. tostring(lst[4]) .. "<");
 			return 
 		end
 	    
@@ -671,9 +689,61 @@ function remove_character(msg)
 end
 
 
+function weekly_reset(msg)
+	for idx, item in ipairs(_NAMES_) do
+		-- reset finished key
+		_DB_[item.."hkey"] = 0;
+
+		-- reset bag key
+		_DB_[item.."bagkey"] = "?";
+
+		-- reset seals obtained
+		_DB_[item.."sealsobt"] = 0;
+	end
+end
+
+
+function check_for_id_reset()
+	-- init needed values
+	local reset = 0;
+	local region = GetCurrentRegion();
+
+	if region == 1 then 
+		reset = na_reset;
+	elseif region == 3 then
+		reset = eu_reset;
+	end
+
+	server_time = GetServerTime();
+
+	-- case _NEXT_RESET_ is not initialized
+	if _NEXT_RESET_ == 0 then
+		while reset < server_time do 
+			reset = reset + week;
+		end
+		_NEXT_RESET_ = reset;
+ 	end
+
+ 	-- case no reset needed
+ 	if _NEXT_RESET_ > server_time then 
+ 		return
+
+ 	else 
+ 		while reset < server_time do 
+			reset = reset + week;
+		end
+		_NEXT_RESET_ = reset;
+		weekly_reset();
+ 	end
+end
+
+
+function debug()
+	print(colors["RED"] .. "oh oh, you shouldnt do this" .. "|r")
+
+	--_NEXT_RESET_ = _NEXT_RESET_ - 172800;
+end
+
 -- TODO 
 -- wq oneshot?
 -- auf aktuellem char auslesen, ob AK rdy
--- id reset
-
-
