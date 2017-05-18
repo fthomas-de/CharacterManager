@@ -1,9 +1,12 @@
 ## Interface: 70200
 ## Title: CharacterManager
 ## Author: Eoh
-## Version: 0.4
-## SavedVariables: _DB_, _NAMES_, _NEXT_RESET_
+## Version: 0.5
+## SavedVariables: _DB_, _NAMES_, _NEXT_RESET_, _OPTIONS_, _TRACKED_CHARS_, _EOSCM_DB_
 
 Libs\LegionArtifacts-1.1\LegionArtifacts-1.1.lua
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 CharacterManager.lua

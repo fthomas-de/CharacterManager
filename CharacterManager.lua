@@ -1,12 +1,20 @@
-local version = ".4";
+local version = ".5";
 local pname = UnitName("player");
 local _, pclass = UnitClass("player");
-local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor-HoV", "Neltharion's Lair-NL", "Blackrook Hold-BRH", "Maw of Souls-MoS", "Vault of the Wardens-VotW", "Return to Karazhan: Lower-LK", "Return to Karazhan: Upper-UK", "Cathedral of Eternal Night-CoeN", "Court of Stars-CoS", "The Arcway-TA"};
 local LA = LibStub:GetLibrary("LegionArtifacts-1.1")
+local ldb = LibStub:GetLibrary("LibDataBroker-1.1")
 local week = 604800;
 local na_reset  = 1486479600;
 local eu_reset  = 1485327600;
 
+local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor-HoV", "Neltharion's Lair-NL", "Blackrook Hold-BRH", "Maw of Souls-MoS", "Vault of the Wardens-VotW", "Return to Karazhan: Lower-LK", "Return to Karazhan: Upper-UK", "Cathedral of Eternal Night-CoeN", "Court of Stars-CoS", "The Arcway-TA"};
+local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
+local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
+
+local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "Nighthold ID", "WQ 1shot", "Minimap Icon"};
+
+local window_shown = false;
+local options_shown = false;
 
 local colors = {
     ["DEATHKNIGHT"] = "|cffC41F3B",
@@ -24,7 +32,10 @@ local colors = {
     ["GOLD"] = "|cffffcc00",
     ["RED"] = "|cffff0000",
     ["UNKNOWN"]  = "|cffffffff",
+    ["GREEN"] = "|cff00ff00",
+    ["WHITE"] = "|cffffffff",
 };
+
 
 -- LIGHTRED             |cffff6060
 -- LIGHTBLUE           |cff00ccff
@@ -33,11 +44,9 @@ local colors = {
 -- GREENYELLOW    |cffADFF2F
 -- BLUE                 |cff0000ff
 -- PURPLE		    |cffDA70D6
--- GREEN	        |cff00ff00
 -- GOLD            |cffffcc00
 -- GOLD2			|cffFFC125
 -- GREY            |cff888888
--- WHITE           |cffffffff
 -- SUBWHITE        |cffbbbbbb
 -- MAGENTA         |cffff00ff
 -- YELLOW          |cffffff00
@@ -68,12 +77,52 @@ local months = {
 
 };
 
+-------------------------------------------------------------------------------------
+local addon = LibStub("AceAddon-3.0"):NewAddon("CharacterManager", "AceConsole-3.0")
+local eoscmLDB = LibStub("LibDataBroker-1.1"):NewDataObject("eoscm_minimap", {
+	type = "data source",
+	text = "CharacterManager",
+	icon = "Interface\\AddOns\\CharacterManager\\eoscm",
+	OnClick = function() show_window() end,
+	OnTooltipShow = function(tt)
+		tt:AddLine("Eoh's CharacterManager");
+		tt:AddLine(colors["WHITE"] .. "Click|r to open Eoh's CharacterManager");
+		tt:AddLine(colors["WHITE"] .. "Click and hold|r to drag the icon");
+	end,
+})
+local icon = LibStub("LibDBIcon-1.0")
+
+function addon:OnInitialize()
+	-- Obviously you'll need a ## SavedVariables: BunniesDB line in your TOC, duh!
+	self.db = LibStub("AceDB-3.0"):New("_EOSCM_DB_", {
+		profile = {
+			minimap = {
+				hide = false,
+			},
+		},
+	})
+	icon:Register("eoscm_minimap", eoscmLDB, self.db.profile.minimap)
+	self:RegisterChatCommand("hidemm", "HideMiniMap")
+end
+
+function addon:HideMiniMap()
+	self.db.profile.minimap.hide = not self.db.profile.minimap.hide
+	if self.db.profile.minimap.hide then
+		icon:Hide("eoscm_minimap")
+	else
+		icon:Show("eoscm_minimap")
+	end
+end
+-------------------------------------------------------------------------------------
+
+
 -- main
 local cm_frame = CreateFrame("FRAME", "CharacterManager", UIParent, "BasicFrameTemplateWithInset"); -- Need a frame to respond to events
 cm_frame:RegisterEvent("ADDON_LOADED");
 cm_frame:RegisterEvent("ARTIFACT_UPDATE");
 cm_frame:RegisterEvent("PLAYER_ENTERING_WORLD");
 cm_frame:RegisterEvent("PLAYER_LOGOUT");
+cm_frame:RegisterEvent("QUEST_FINISHED");
 
 function cm_frame:OnEvent(event, name)
 	if event == "ADDON_LOADED" and name == "CharacterManager" then
@@ -95,9 +144,38 @@ function cm_frame:OnEvent(event, name)
 	 		_NEXT_RESET_ = 0;
 	 	end
 
+	 	if _OPTIONS_ == nil then
+	 		_OPTIONS_ = {
+				["Mythic+ Info"] = true, 
+				["Artifact level (AK)"] = true, 
+				["AK research"] = true, 
+				["Current seals"] = true, 
+				["Seals obtained"] = true, 
+				["Itemlevel"] = true, 
+				["OResources"] = true, 
+				["Nighthold ID"] = true,
+				["WQ 1shot"] = true,
+			};
+		end
+
+		if _TRACKED_CHARS_ == nil then
+	 		_TRACKED_CHARS_ = {};
+
+	 		for _, item in ipairs(_NAMES_) do 
+	 			if _TRACKED_CHARS_[item] == nil then
+	 				_TRACKED_CHARS_[item] = true;
+	 			end
+	 		end
+	 	end
+
+
 	 	-- init name
 	 	if not contains(_NAMES_, pname)  then 
 	 		table.insert(_NAMES_, pname);
+	 	end
+
+	 	if _TRACKED_CHARS_[pname] == nil then 
+	 		_TRACKED_CHARS_[pname] = true;
 	 	end
 
 	 	-- init class
@@ -109,25 +187,55 @@ function cm_frame:OnEvent(event, name)
 	 		_DB_[pname.."cls"] = pclass;
 	 	end
 
-	 	cm_frame:SetSize(300, (120 * table.getn(_NAMES_) + 50));
-		cm_frame:SetPoint("CENTER", UIParent, "CENTER")
+	 	local options_checked = 0;
+	 	for idx, item in ipairs(option_choices) do
+	 		if _OPTIONS_[option_choices[idx]] then 
+	 			options_checked = options_checked + 1;
+	 		end
+	 	end
+
+	 	local tracked_chars = 0;
+		for idx, item in ipairs(_NAMES_) do
+			if _TRACKED_CHARS_[item] ~= nil and _TRACKED_CHARS_[item] == true then
+				tracked_chars = tracked_chars + 1;
+			end
+		end
+	 	cm_frame:SetSize(300, (tracked_chars *  (150 * (options_checked * table.getn(_NAMES_) / table.getn(option_choices)) / table.getn(_NAMES_)) + 135));
+		cm_frame:SetPoint("CENTER", UIParent, "CENTER");
 		cm_frame:EnableMouse(true);
 		cm_frame:SetMovable(true);
 		cm_frame:RegisterForDrag("LeftButton");
 		cm_frame:SetScript("OnDragStart", cm_frame.StartMoving);
 		cm_frame:SetScript("OnDragStop", cm_frame.StopMovingOrSizing);
 
-		cm_frame.title = nil;
 		cm_frame.title = cm_frame:CreateFontString();
 		cm_frame.title:SetFontObject("GameFontHighlight");
 		cm_frame.title:SetPoint("LEFT", cm_frame.TitleBg, "LEFT", 5, 0);
 		cm_frame.title:SetText("Eoh's CharacterManager - v"..version);
 
+		cm_frame.options_button = CreateFrame("Button", "options_button", cm_frame, "GameMenuButtonTemplate");
+		cm_frame.options_button:SetPoint("BOTTOMLEFT", cm_frame, "BOTTOMLEFT", 10, 10);
+		cm_frame.options_button:SetSize(70, 25);
+		cm_frame.options_button:SetText("config");
+		cm_frame.options_button:SetNormalFontObject("GameFontNormalLarge");
+		cm_frame.options_button:SetHighlightFontObject("GameFontHighlightLarge");
+		cm_frame.options_button:Hide();
+		cm_frame.options_button:SetScript("OnClick", toggle_options_window);
+
+		cm_frame.reload_button = CreateFrame("Button", "reload_button", cm_frame, "GameMenuButtonTemplate");
+		cm_frame.reload_button:SetPoint("BOTTOMRIGHT", cm_frame, "BOTTOMRIGHT", -10, 10);
+		cm_frame.reload_button:SetSize(70, 25);
+		cm_frame.reload_button:SetText("/reload");
+		cm_frame.reload_button:SetNormalFontObject("GameFontNormalLarge");
+		cm_frame.reload_button:SetHighlightFontObject("GameFontHighlightLarge");
+		cm_frame.reload_button:Hide();
+		cm_frame.reload_button:SetScript("OnClick", ReloadUI);
+
 		cm_frame.content = cm_frame:CreateFontString("CM_CONTENT");
 		cm_frame.content:SetPoint("CENTER");
 		cm_frame.content:SetFontObject("GameFontHighlight");
 
-		cm_frame:SetScript("OnEvent",function(self)
+		cm_frame:SetScript("OnEvent", function(self)
 	    	self.content:SetText(build_content())
 		end)
 
@@ -135,17 +243,214 @@ function cm_frame:OnEvent(event, name)
 	 	
 	 	init();
 	 	updates();
-	 end
+	else 
+	 	updates();
+	end
 end
+
+
+function toggle_options_window()
+	if options_shown == false then
+		show_options();
+	else
+		hide_options();
+	end
+end
+
+
+function show_options()
+	if not cm_frame.options_frame then
+		init_options_window();
+	end
+	options_shown = true;
+	cm_frame.options_frame:Show();
+	cm_frame.options_frame.weekly_button:Show();
+	cm_frame.options_frame.reset_button:Show();
+end
+
+
+function hide_options()
+	if not cm_frame.options_frame then
+		init_options_window();
+	end
+	options_shown = false;
+	cm_frame.options_frame:Hide();
+	cm_frame.options_frame.weekly_button:Hide();
+	cm_frame.options_frame.reset_button:Hide();
+end
+
+
+function init_options_window()
+	local tracked_chars = 0;
+	for idx, item in ipairs(_NAMES_) do
+		if _TRACKED_CHARS_[item] ~= nil and _TRACKED_CHARS_[item] == true then
+			tracked_chars = tracked_chars + 1;
+		end
+	end
+
+	cm_frame.options_frame = CreateFrame("FRAME", "CharacterManagerOptions", cm_frame, "BasicFrameTemplateWithInset");
+ 	cm_frame.options_frame:SetSize(250, (45 * table.getn(option_choices) + 50 + 45 * tracked_chars));
+	cm_frame.options_frame:SetPoint("TOPLEFT", cm_frame, "TOPRIGHT");
+	cm_frame.options_frame:SetScript("OnHide", hide_options);
+
+	local retarded_space_solutions_ltd = "                                    ";
+
+	cm_frame.options_frame.button1 = CreateFrame("CheckButton", option_choices[1], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button1:SetPoint("CENTER", cm_frame.options_frame, "TOP", -55, -65);
+	cm_frame.options_frame.button1:SetText(retarded_space_solutions_ltd .. option_choices[1]);
+	cm_frame.options_frame.button1:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[1]] then
+		cm_frame.options_frame.button1:Click();
+	end
+	cm_frame.options_frame.button1:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+
+
+	cm_frame.options_frame.button2 = CreateFrame("CheckButton", option_choices[2], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button2:SetPoint("TOP", cm_frame.options_frame.button1, "BOTTOM");
+	cm_frame.options_frame.button2:SetText(retarded_space_solutions_ltd .. option_choices[2]);
+	cm_frame.options_frame.button2:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[2]] then
+		cm_frame.options_frame.button2:Click();
+	end
+	cm_frame.options_frame.button2:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)	
+
+
+	cm_frame.options_frame.button3 = CreateFrame("CheckButton", option_choices[3], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button3:SetPoint("TOP", cm_frame.options_frame.button2, "BOTTOM");
+	cm_frame.options_frame.button3:SetText(retarded_space_solutions_ltd .. option_choices[3]);
+	cm_frame.options_frame.button3:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[3]] then
+		cm_frame.options_frame.button3:Click();
+	end
+	cm_frame.options_frame.button3:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+	
+	cm_frame.options_frame.button4 = CreateFrame("CheckButton", option_choices[4], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button4:SetPoint("TOP", cm_frame.options_frame.button3, "BOTTOM");
+	cm_frame.options_frame.button4:SetText(retarded_space_solutions_ltd .. option_choices[4]);
+	cm_frame.options_frame.button4:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[4]] then
+		cm_frame.options_frame.button4:Click();
+	end
+	cm_frame.options_frame.button4:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+	
+	cm_frame.options_frame.button5 = CreateFrame("CheckButton", option_choices[5], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button5:SetPoint("TOP", cm_frame.options_frame.button4, "BOTTOM");
+	cm_frame.options_frame.button5:SetText(retarded_space_solutions_ltd .. option_choices[5]);
+	cm_frame.options_frame.button5:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[5]] then
+		cm_frame.options_frame.button5:Click();
+	end
+	cm_frame.options_frame.button5:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+	
+	cm_frame.options_frame.button6 = CreateFrame("CheckButton", option_choices[6], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button6:SetPoint("TOP", cm_frame.options_frame.button5, "BOTTOM");
+	cm_frame.options_frame.button6:SetText(retarded_space_solutions_ltd .. option_choices[6]);
+	cm_frame.options_frame.button6:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[6]] then
+		cm_frame.options_frame.button6:Click();
+	end
+	cm_frame.options_frame.button6:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+	
+	cm_frame.options_frame.button7 = CreateFrame("CheckButton", option_choices[7], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button7:SetPoint("TOP", cm_frame.options_frame.button6, "BOTTOM");
+	cm_frame.options_frame.button7:SetText(retarded_space_solutions_ltd .. option_choices[7]);
+	cm_frame.options_frame.button7:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[7]] then
+		cm_frame.options_frame.button7:Click();
+	end
+	cm_frame.options_frame.button7:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+	
+	cm_frame.options_frame.button8 = CreateFrame("CheckButton", option_choices[8], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button8:SetPoint("TOP", cm_frame.options_frame.button7, "BOTTOM");
+	cm_frame.options_frame.button8:SetText(retarded_space_solutions_ltd .. option_choices[8]);
+	cm_frame.options_frame.button8:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[8]] then
+		cm_frame.options_frame.button8:Click();
+	end
+	cm_frame.options_frame.button8:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+	cm_frame.options_frame.button9 = CreateFrame("CheckButton", option_choices[9], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button9:SetPoint("TOP", cm_frame.options_frame.button8, "BOTTOM");
+	cm_frame.options_frame.button9:SetText(retarded_space_solutions_ltd .. option_choices[9]);
+	cm_frame.options_frame.button9:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[9]] then
+		cm_frame.options_frame.button9:Click();
+	end
+	cm_frame.options_frame.button9:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+
+	local last_button = cm_frame.options_frame.button9;
+	for idx, item in ipairs(_NAMES_) do
+
+		if _TRACKED_CHARS_[item] ~= nil then
+			cm_frame.options_frame.track_button = CreateFrame("CheckButton", item, cm_frame.options_frame, "UICheckButtonTemplate")
+			
+			if idx == 1 then
+				cm_frame.options_frame.track_button:SetPoint("TOP", last_button, "BOTTOM", 0, -35);
+			else
+				cm_frame.options_frame.track_button:SetPoint("TOP", last_button, "BOTTOM");
+			end
+			last_button = cm_frame.options_frame.track_button;
+
+			cm_frame.options_frame.track_button:SetText(retarded_space_solutions_ltd .. item);
+			cm_frame.options_frame.track_button:SetNormalFontObject("GameFontNormalLarge");
+			if _TRACKED_CHARS_[item] then
+				cm_frame.options_frame.track_button:Click();
+			end
+
+			cm_frame.options_frame.track_button:SetScript("OnClick", function(self)
+				_TRACKED_CHARS_[self:GetName()] = self:GetChecked();
+
+			end)
+		end
+	end
+
+
+	cm_frame.options_frame.weekly_button = CreateFrame("Button", "weekly_button", cm_frame.options_frame, "GameMenuButtonTemplate");
+	cm_frame.options_frame.weekly_button:SetPoint("BOTTOMLEFT", cm_frame.options_frame, "BOTTOMLEFT", 10, 10);
+	cm_frame.options_frame.weekly_button:SetSize(70, 25);
+	cm_frame.options_frame.weekly_button:SetText("/weekly");
+	cm_frame.options_frame.weekly_button:SetNormalFontObject("GameFontNormalLarge");
+	cm_frame.options_frame.weekly_button:SetHighlightFontObject("GameFontHighlightLarge")
+	cm_frame.options_frame.weekly_button:SetScript("OnClick", weekly);
+	cm_frame.options_frame.weekly_button:Hide();
+
+	cm_frame.options_frame.reset_button = CreateFrame("Button", "reset_button", cm_frame.options_frame, "GameMenuButtonTemplate");
+	cm_frame.options_frame.reset_button:SetPoint("BOTTOMRIGHT", cm_frame.options_frame, "BOTTOMRIGHT", -10, 10);
+	cm_frame.options_frame.reset_button:SetSize(70, 25);
+	cm_frame.options_frame.reset_button:SetText("/reset");
+	cm_frame.options_frame.reset_button:SetNormalFontObject("GameFontNormalLarge");
+	cm_frame.options_frame.reset_button:SetHighlightFontObject("GameFontHighlightLarge");
+	cm_frame.options_frame.reset_button:SetScript("OnClick", complete_reset);
+	cm_frame.options_frame.reset_button:Hide();
+
+end
+
 
 cm_frame:SetScript("OnEvent", cm_frame.OnEvent);
 SLASH_CM1 = "/eoscm";
 function SlashCmdList.CM(msg)
 	if msg == "reset" then
-		_NAMES_ = {}
-		_DB_ = {}
-		_NEXT_RESET_ = 0;
-		ReloadUI();
+		complete_reset();
 
 	elseif string.match(msg, "rm") then 
 		remove_character(msg);
@@ -159,45 +464,104 @@ function SlashCmdList.CM(msg)
 		debug();
 
 	else
+		show_window();
+	end
+end
+
+
+function toogle_window()
+	if window_shown == false then
+		window_shown = true;
 		init();
 		updates();
 		cm_frame:Show();
+		cm_frame.options_button:Show();
+		cm_frame.reload_button:Show();
+	else
+		window_shown = false;
+		cm_frame:Hide();
+		cm_frame.options_button:Hide();
+		cm_frame.reload_button:Hide();
 	end
+end
+
+
+function show_window()
+	window_shown = true;
+	init();
+	updates();
+	cm_frame:Show();
+	cm_frame.options_button:Show();
+	cm_frame.reload_button:Show();
 end
 
 
 function build_content()
 	updates();
 
-	local s = "\n";
+	local s = "";
 	for i=0, table.getn(_NAMES_) do 
-		n = _NAMES_[i];
+		local n = _NAMES_[i];
 
-		if n then 
+		if n and _TRACKED_CHARS_[n] then 
 			s = s .. colors[_DB_[n.."cls"]] .. n .. "|r" .. "\n";
-			s = s .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")\n";
-			s = s .. "Artifact lvl: " .. _DB_[n.."artifactlevel"] .. " (AK: " .. _DB_[n.."level"] .. ")" .. "\n";
-			s = s .. "Next AK: " .. target_date_to_time(_DB_[n.."akremain"]) .. "\n";
-			s = s .. "Seals: " .. _DB_[n.."seals"] .. "/6" .. "\n";
-			if _DB_[n.."sealsobt"] == 0 then 
-				s = s .. "Seals obtained: " .. colors["RED"] .. _DB_[n.."sealsobt"].. "|r" .. "/3" .. "\n";	
-			else
-				s = s .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "\n";	
+
+			if _OPTIONS_[option_choices[1]] then
+				s = s .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")\n";
 			end
 
-			s = s .. "Itemlevel: " .. _DB_[n.."itemlevel"] .. "/" .. _DB_[n.."itemlevelbag"] .. "\n";
-			s = s .. "OResources: " .. _DB_[n.."orderres"] .. "\n";
-			
-			if _DB_[n.."nhraidid"] ~= "-" then
-				s = s .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "\n";
+			if _OPTIONS_[option_choices[2]] then
+				s = s .. "Artifact lvl: " .. _DB_[n.."artifactlevel"] .. " (AK: " .. _DB_[n.."level"] .. ")" .. "\n";
 			end
+			
+			if _OPTIONS_[option_choices[3]] then
+				s = s .. "Next AK: " .. target_date_to_time(n) .. "\n";
+			end
+
+			if _OPTIONS_[option_choices[4]] then
+				s = s .. "Seals: " .. _DB_[n.."seals"] .. "/6" .. "\n";
+			end
+
+			if _OPTIONS_[option_choices[5]] then
+				if _DB_[n.."sealsobt"] == 0 then 
+					s = s .. "Seals obtained: " .. colors["RED"] .. _DB_[n.."sealsobt"].. "|r" .. "/3" .. "\n";	
+				else
+					s = s .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "\n";	
+				end
+			end
+
+			if _OPTIONS_[option_choices[6]] then
+				s = s .. "Itemlevel: " .. _DB_[n.."itemlevel"] .. "/" .. _DB_[n.."itemlevelbag"] .. "\n";
+			end
+
+			if _OPTIONS_[option_choices[7]] then
+				s = s .. "OResources: " .. _DB_[n.."orderres"] .. "\n";
+			end
+
+			if _OPTIONS_[option_choices[8]] then
+				if _DB_[n.."nhraidid"] ~= "-" then
+					s = s .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "\n";
+				end
+			end
+
+			if _OPTIONS_[option_choices[9]] then
+				if _DB_[n.."wqoneshot"] ~= -1 then
+					if GetTime() > _DB_[n.."wqoneshot"] then
+						s = s .. "WQ 1shot: " .. colors["GREEN"] .. "UP" .. "|r" .. "\n";
+					else
+						
+						s = s .. "WQ 1shot in: " .. wq_oneshot_remaining(n) .. "\n";
+					end
+				end
+			end			
 
 			if table.getn(_NAMES_) > 1 and i ~= table.getn(_NAMES_) then 
 				s = s .. "\n";
 			end
 		end
 	end
-
+	s = s .. "\n\n\n" .. colors["RED"] .. "Open your artifact weapon to force a data refresh." .. "|r" .. "\n" 
+	s = s .. colors["RED"] .. "The window only resizes after reloads." .. "|r" .. "\n" 
 	return s
 end
 
@@ -231,7 +595,7 @@ function init()
 	 	end
 
 	 	if not _DB_[char_name .. "bagkey"] then
-	 		_DB_[char_name .. "bagkey"] = 0;
+	 		_DB_[char_name .. "bagkey"] = "no key";
 	 	end     
 
 	 	if not _DB_[char_name .. "seals"] then
@@ -257,6 +621,10 @@ function init()
 	 	if not _DB_[char_name .. "nhraidid"] then
 	 		_DB_[char_name .. "nhraidid"] = "?";
 	 	end
+
+	 	if not _DB_[char_name .. "wqoneshot"] then
+	 		_DB_[char_name .. "wqoneshot"] = -1;
+	 	end
 	 end
 end
 
@@ -274,6 +642,7 @@ function updates()
 	hkey_update();
 	akremain_update();
 	update_raidid();
+	update_wqoneshot();
 
 	new_shit();
 end
@@ -311,7 +680,26 @@ function find(lst, val)
 end
 
 
-function target_date_to_time()
+function target_date_to_time(n)
+	-- check if u can pick up akr on current char
+	local t = C_Garrison.GetLooseShipments(3);
+    local i = 1;
+    for l = i,#t do 
+        local c = C_Garrison.GetLandingPageShipmentInfoByContainerID(C_Garrison.GetLooseShipments(3)[l]);
+        if c=="Artifact Research Notes" then 
+            i=l;
+            break
+        end
+    end
+
+    if C_Garrison.GetLooseShipments(3)[i] then
+	    local _, _, _, shipmentsReady, _, _, _, _ = C_Garrison.GetLandingPageShipmentInfoByContainerID(C_Garrison.GetLooseShipments(3)[i]);
+
+	    if shipmentsReady and shipmentsReady == 1 and n == pname then
+	    	return colors["GOLD"] .. "PICK IT UP!" .. "|r";
+	    end
+	end
+
 	local target_day = 0;
 	local target_month = 0;
 	local target_hour = 0;
@@ -381,7 +769,7 @@ function target_date_to_time()
 			end
 
 			if tonumber(current_minute) < 10 then
-				current_minutes = "0" .. current_minute;
+				current_minute = "0" .. current_minute;
 			end
 
 			if tostring(target_min) == "??" then
@@ -394,30 +782,35 @@ function target_date_to_time()
 
 		else
 			-- same day
-			if tonumber(target_min) < 10 then
-				target_min = "0" .. target_min;
-			end
+			local h = tonumber(target_hour) - tonumber(current_hour); -- works cus same day
+			local m = tonumber(target_min) - tonumber(current_minute); --  may be negative
 
-			if tonumber(current_minute) < 10 then
-				current_minute = "0" .. current_minute;
-			end
-
-			local h = tonumber(target_hour) - tonumber(current_hour);
-
-			local m = 60 - tonumber(current_minute) + tonumber(target_min);
-
-			if tonumber(target_min) < tonumber(current_minute) then
+			if m < 0 then
 				h = h - 1;
+				m = m + 60;
 			end
 
-
-			return colors["GOLD"] .. "Today" .. "|r" .. " in " .. h .. " h and " .. m .. " min";
-
+			if tonumber(h) > 0 then
+				return colors["GOLD"] .. "Today" .. "|r" .. " in " .. h .. " h and " .. m .. " min";
+			else
+				return colors["GOLD"] .. "Today" .. "|r" .. " in " .. m .. " min";
+			end
 		end
 	else
 		return "unknown";
 	end
 end
+
+
+function wq_oneshot_remaining(char_name)
+	local oneshot_time = _DB_[char_name.."wqoneshot"] - GetTime();
+	local oneshot_hour = math.floor(oneshot_time / 3600);
+	local oneshot_minute = math.floor(math.floor(oneshot_time % 3600) / 60) ;
+
+	return oneshot_hour .. " h and " .. oneshot_minute .. " min"
+
+end
+
 
 -- 2 is later than 1
 function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
@@ -460,13 +853,19 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 
 
 	else 
-		-- different days
+		-- different days -- next day i guess
+		--print(h1 .. " " .. min1);
+		--print(h2 .. " " .. min2);
 		local h = 24 - tonumber(h1) + tonumber(h2);
-		local min = 60 - tonumber(min1) + tonumber(min2);
 
-		if min >= 60 then
-			h = h + 1;
-			min = min - 60;
+		local min = -1;
+
+		if tonumber(min1) > tonumber(min2) then
+			min = 60 - tonumber(min1) + tonumber(min2);
+			h = h - 1;
+
+		else
+			min = min2 - min1;
 		end
 
 		s = s .. tostring(h) .. " h ";
@@ -474,12 +873,6 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 	end
 	
 	return s
-end
-
-
-function hex2rgb(hex)
-    hex = hex:gsub("#","")
-    return tonumber("0x"..hex:sub(1,2)), tonumber("0x"..hex:sub(3,4)), tonumber("0x"..hex:sub(5,6))
 end
 
 
@@ -632,7 +1025,7 @@ function akremain_update()
 	local current_month = 0;
 	local current_day = 0;
 	local current_hour = 0;
-	local current_minutes = 0;
+	local current_minute = 0;
 
     local t = C_Garrison.GetLooseShipments(3);
     local i = 1;
@@ -648,7 +1041,7 @@ function akremain_update()
 		return 
 	end
 
-    local _, _, _, _, _, _, _, tlStr = C_Garrison.GetLandingPageShipmentInfoByContainerID(C_Garrison.GetLooseShipments(3)[i]);
+    local _, _, _, shipmentsReady, _, _, _, tlStr = C_Garrison.GetLandingPageShipmentInfoByContainerID(C_Garrison.GetLooseShipments(3)[i]);
 
     if tlStr then
 		local lst = tolist(string.gmatch(tlStr, "%S+"));
@@ -684,7 +1077,7 @@ function akremain_update()
 		    end
 
 		-- mins only because hrs == 0
-		elseif lst[2] and dstring.match(lst[2], "min") then 
+		elseif lst[2] and string.match(lst[2], "min") then 
 			for idx, item in ipairs(lst) do
 		    	if idx == 1 then
 		    		remaining_minutes = item;
@@ -709,7 +1102,7 @@ function akremain_update()
 		    	elseif idx == 3 then
 		    		current_hour = tonumber(item);
 		    	elseif idx == 4 then
-		    		current_minutes = tonumber(item);
+		    		current_minute = tonumber(item);
 		    	end
 		    end
 		end
@@ -719,7 +1112,7 @@ function akremain_update()
 		local target_hour = current_hour + tonumber(remaining_hours);
 
 		if tostring(remaining_minutes) ~= "??" then
-			target_min = current_minutes + remaining_minutes;
+			target_min = current_minute + remaining_minutes;
 		else 
 			target_min = remaining_minutes;
 		end
@@ -781,9 +1174,9 @@ function update_raidid()
 
 		elseif name == "The Nighthold" and difficultyName == "Normal" and locked then
 			if encounterProgress < numEncounters then
-				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "N";
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "N ";
 			else
-				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N";
+				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N ";
 			end
 
 		end
@@ -795,6 +1188,18 @@ function update_raidid()
 end
 
 
+function update_wqoneshot()
+	if contains(world_quest_one_shot, pclass) then
+		local start, duration, enable = GetSpellCooldown(world_quest_one_shot_ids[pclass]);
+		local finish = math.floor(start) + duration
+		--print(start .. ".." .. duration.. ".." .. tostring(enable));
+		--print(finish);
+		_DB_[pname .. "wqoneshot"] = math.floor(finish);
+	end
+end
+
+
+-- cmd functions
 function remove_character(msg)
 	local lst = tolist(string.gmatch(msg, "%S+"));
 	local cmd = lst[1];
@@ -866,14 +1271,36 @@ function check_for_id_reset()
 end
 
 
+function weekly()
+	weekly_reset("weekly");
+	ReloadUI();
+end
+
+
+function complete_reset()
+	_NAMES_ = nil;
+	_DB_ = nil;
+	_NEXT_RESET_ = nil;
+	_TRACKED_CHARS_ = nil;
+	_OPTIONS_ = nil;
+	ReloadUI();
+end
+
+
 function debug()
-	print(colors["RED"] .. "oh oh, you shouldnt do this" .. "|r")
+	--print(colors["RED"] .. "oh oh, you shouldnt do this" .. "|r")
 
 	--_NEXT_RESET_ = _NEXT_RESET_ - 172800;
 end
 
 
+-- function testeing
 function new_shit()
+	--print("new shit");
+	--print("return: " .. time_diff(5, 17, 12, 2, 5, 18, 11, 3));
+	--print("return: " .. time_diff(5, 17, 12, 3, 5, 18, 11, 3));
+	--print("return: " .. time_diff(5, 17, 12, 3, 5, 18, 11, 2));
+
 	return
 end
 
