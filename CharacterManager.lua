@@ -11,7 +11,7 @@ local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor
 local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
 local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
 
-local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "Nighthold ID", "WQ 1shot", "Minimap Icon"};
+local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "Nighthold ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
 
 local window_shown = false;
 local options_shown = false;
@@ -126,8 +126,7 @@ cm_frame:RegisterEvent("QUEST_FINISHED");
 
 function cm_frame:OnEvent(event, name)
 	if event == "ADDON_LOADED" and name == "CharacterManager" then
- 		print(colors["GOLD"] .. "CharacterManager " .. version .. " loaded!");
-
+ 		DEFAULT_CHAT_FRAME:AddMessage(colors["GOLD"] .. "CharacterManager " .. version .. " loaded!");
  		
  		cm_frame:UnregisterEvent("ADDON_LOADED");
 
@@ -155,6 +154,7 @@ function cm_frame:OnEvent(event, name)
 				["OResources"] = true, 
 				["Nighthold ID"] = true,
 				["WQ 1shot"] = true,
+				["Emissary Chests"] = true,
 			};
 		end
 
@@ -200,7 +200,7 @@ function cm_frame:OnEvent(event, name)
 				tracked_chars = tracked_chars + 1;
 			end
 		end
-	 	cm_frame:SetSize(300, (tracked_chars *  (150 * (options_checked * table.getn(_NAMES_) / table.getn(option_choices)) / table.getn(_NAMES_)) + 135));
+	 	cm_frame:SetSize(300, (tracked_chars *  (155 * (options_checked * table.getn(_NAMES_) / table.getn(option_choices)) / table.getn(_NAMES_)) + 145));
 		cm_frame:SetPoint("CENTER", UIParent, "CENTER");
 		cm_frame:EnableMouse(true);
 		cm_frame:SetMovable(true);
@@ -307,7 +307,6 @@ function init_options_window()
 	end)
 
 
-
 	cm_frame.options_frame.button2 = CreateFrame("CheckButton", option_choices[2], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button2:SetPoint("TOP", cm_frame.options_frame.button1, "BOTTOM");
 	cm_frame.options_frame.button2:SetText(retarded_space_solutions_ltd .. option_choices[2]);
@@ -331,6 +330,7 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 	
+
 	cm_frame.options_frame.button4 = CreateFrame("CheckButton", option_choices[4], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button4:SetPoint("TOP", cm_frame.options_frame.button3, "BOTTOM");
 	cm_frame.options_frame.button4:SetText(retarded_space_solutions_ltd .. option_choices[4]);
@@ -342,6 +342,7 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 	
+
 	cm_frame.options_frame.button5 = CreateFrame("CheckButton", option_choices[5], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button5:SetPoint("TOP", cm_frame.options_frame.button4, "BOTTOM");
 	cm_frame.options_frame.button5:SetText(retarded_space_solutions_ltd .. option_choices[5]);
@@ -353,6 +354,7 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 	
+
 	cm_frame.options_frame.button6 = CreateFrame("CheckButton", option_choices[6], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button6:SetPoint("TOP", cm_frame.options_frame.button5, "BOTTOM");
 	cm_frame.options_frame.button6:SetText(retarded_space_solutions_ltd .. option_choices[6]);
@@ -364,6 +366,7 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 	
+
 	cm_frame.options_frame.button7 = CreateFrame("CheckButton", option_choices[7], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button7:SetPoint("TOP", cm_frame.options_frame.button6, "BOTTOM");
 	cm_frame.options_frame.button7:SetText(retarded_space_solutions_ltd .. option_choices[7]);
@@ -375,6 +378,7 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 	
+
 	cm_frame.options_frame.button8 = CreateFrame("CheckButton", option_choices[8], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button8:SetPoint("TOP", cm_frame.options_frame.button7, "BOTTOM");
 	cm_frame.options_frame.button8:SetText(retarded_space_solutions_ltd .. option_choices[8]);
@@ -385,6 +389,7 @@ function init_options_window()
 	cm_frame.options_frame.button8:SetScript("OnClick", function(self)
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
+
 
 	cm_frame.options_frame.button9 = CreateFrame("CheckButton", option_choices[9], cm_frame.options_frame, "UICheckButtonTemplate")
 	cm_frame.options_frame.button9:SetPoint("TOP", cm_frame.options_frame.button8, "BOTTOM");
@@ -398,7 +403,19 @@ function init_options_window()
 	end)
 
 
-	local last_button = cm_frame.options_frame.button9;
+	cm_frame.options_frame.button10 = CreateFrame("CheckButton", option_choices[10], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button10:SetPoint("TOP", cm_frame.options_frame.button9, "BOTTOM");
+	cm_frame.options_frame.button10:SetText(retarded_space_solutions_ltd .. option_choices[10]);
+	cm_frame.options_frame.button10:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[10]] then
+		cm_frame.options_frame.button10:Click();
+	end
+	cm_frame.options_frame.button10:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+
+	local last_button = cm_frame.options_frame.button10;
 	for idx, item in ipairs(_NAMES_) do
 
 		if _TRACKED_CHARS_[item] ~= nil then
@@ -523,7 +540,7 @@ function build_content()
 			end
 
 			if _OPTIONS_[option_choices[5]] then
-				if _DB_[n.."sealsobt"] == 0 then 
+				if _DB_[n.."sealsobt"] <= 2 then 
 					s = s .. "Seals obtained: " .. colors["RED"] .. _DB_[n.."sealsobt"].. "|r" .. "/3" .. "\n";	
 				else
 					s = s .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "\n";	
@@ -545,23 +562,35 @@ function build_content()
 			end
 
 			if _OPTIONS_[option_choices[9]] then
-				if _DB_[n.."wqoneshot"] ~= -1 then
-					if GetTime() > _DB_[n.."wqoneshot"] then
+				local wq_oneshot_time = _DB_[n.."wqoneshot"];
+				if wq_oneshot_time == "unknown" then
+					s = s .. "WQ 1shot CD unknown :(" .. "\n";
+				elseif _DB_[n.."wqoneshot"] ~= -1 then
+					if GetServerTime() >= _DB_[n.."wqoneshot"] then
 						s = s .. "WQ 1shot: " .. colors["GREEN"] .. "UP" .. "|r" .. "\n";
 					else
 						
 						s = s .. "WQ 1shot in: " .. wq_oneshot_remaining(n) .. "\n";
 					end
 				end
-			end			
+			end
+
+			if _OPTIONS_[option_choices[10]] then
+				if _DB_[n .. "emissary"] and _DB_[n .. "emissary_date"] then
+					s = s .. "Emissary chests (estimated): " .. emissary_string(n) .. "\n";
+				else
+					s = s .. "Emissary chests: Unknown :(\n";
+				end
+			end
 
 			if table.getn(_NAMES_) > 1 and i ~= table.getn(_NAMES_) then 
 				s = s .. "\n";
 			end
 		end
 	end
-	s = s .. "\n\n\n" .. colors["RED"] .. "Open your artifact weapon to force a data refresh." .. "|r" .. "\n" 
-	s = s .. colors["RED"] .. "The window only resizes after reloads." .. "|r" .. "\n" 
+	s = s .. "\n\n\n" .. colors["RED"] .. "Open your artifact weapon to force a data refresh." .. "|r" .. "\n";
+	s = s .. colors["RED"] .. "The window only resizes after reloads." .. "|r" .. "\n\n";
+	s = s .. "Use /hidemm to hide the minimap icon." .. "\n"; 
 	return s
 end
 
@@ -625,11 +654,20 @@ function init()
 	 	if not _DB_[char_name .. "wqoneshot"] then
 	 		_DB_[char_name .. "wqoneshot"] = -1;
 	 	end
+
+	 	if not _DB_[pname.."emissary"] then
+	 		_DB_[pname.."emissary"] = 0;
+	 	end
+
+	  	if not _DB_[pname.."emissary_date"] then
+	 		_DB_[pname.."emissary_date"] = 0;
+	 	end
 	 end
 end
 
 
 function updates()
+	--print("updating...")
 	check_for_id_reset();
 
 	seals_update();
@@ -643,6 +681,7 @@ function updates()
 	akremain_update();
 	update_raidid();
 	update_wqoneshot();
+	update_emissary();
 
 	new_shit();
 end
@@ -650,6 +689,10 @@ end
 
 -- Helper 
 function contains(tab, val)
+	if tab == nil or val == nil then 
+		return false; 
+	end
+
     for index, value in ipairs(tab) do
         if value == val then
             return true
@@ -803,17 +846,74 @@ end
 
 
 function wq_oneshot_remaining(char_name)
-	local oneshot_time = _DB_[char_name.."wqoneshot"] - GetTime();
+	local oneshot_time = _DB_[char_name.."wqoneshot"] - GetServerTime();
 	local oneshot_hour = math.floor(oneshot_time / 3600);
 	local oneshot_minute = math.floor(math.floor(oneshot_time % 3600) / 60) ;
-
 	return oneshot_hour .. " h and " .. oneshot_minute .. " min"
 
 end
 
 
--- 2 is later than 1
+function count_open_emissary_quests()
+	-- wardens, valajar, nightfallen, kirin tor, dreamweaver, highmountain, farondis
+	local emissary_quest_ids = {42422, 42234, 42421, 43179, 42170, 42233, 42420}
+	local count = 0;
+
+	local num_entries, num_quests = GetNumQuestLogEntries();
+	for i=1,num_entries do
+		-- title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory, isHidden 
+		local _, _, _, _, _, _, _, quest_id, _, _, _, _, _, _, _ = GetQuestLogTitle(i);
+		if contains(emissary_quest_ids, tonumber(quest_id)) then
+			count = count + 1;
+		end			
+	end
+	return count;
+end
+
+
+function emissary_string(name)
+	local count = _DB_[name.."emissary"];
+	local emissary_date = _DB_[name.."emissary_date"];
+
+	-- was saved checked today
+	if GetServerTime() <= emissary_date then
+		return count;
+
+	else
+		-- wasnt check today
+		local one_day = 60 * 60 * 24;
+		local two_days = one_day * 2;
+		local time_since_save = GetServerTime() - emissary_date;
+
+		if time_since_save > two_days then
+			return 3;
+
+		elseif time_since_save > one_day then
+			if count >= 1 then
+				return 2 + 1;
+			
+			else 
+				return 2;
+			end
+
+		else
+			if count >= 2 then
+				return 1 + 2;
+			
+			elseif count == 1 then
+				return 1 + 1;
+			
+			else 
+				return 1;
+			end
+		end
+	end
+	return -1;
+end
+
+
 function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
+	-- 2 is later than 1
 	local s = "";
 
 	-- case min2 contains "??"
@@ -1190,12 +1290,84 @@ end
 
 function update_wqoneshot()
 	if contains(world_quest_one_shot, pclass) then
-		local start, duration, enable = GetSpellCooldown(world_quest_one_shot_ids[pclass]);
-		local finish = math.floor(start) + duration
-		--print(start .. ".." .. duration.. ".." .. tostring(enable));
-		--print(finish);
-		_DB_[pname .. "wqoneshot"] = math.floor(finish);
+		local current_saved_val = _DB_[pname .. "wqoneshot"];
+		local spell_id = world_quest_one_shot_ids[pclass];
+
+		-- remove later TODO
+		if current_saved_val == "Unknown" then
+			_DB_[pname .. "wqoneshot"] = "unknown";
+		end
+
+		if current_saved_val == 0 or current_saved_val == "unknown" then 
+			--print("currently 0 or unknown")
+
+			-- check if on cd
+			start, duration, enabled = GetSpellCooldown(spell_id);
+			--print("tocheck: " .. start .. ", " .. duration .. ", " .. enabled);
+		
+			if start ~= 0 and duration ~= 0 then
+				-- calculate new cd
+				local finish = start + duration - GetTime(); -- this has to run in the same session the spell was used
+				local finish_hours = math.floor(finish / 3600);
+
+				-- check if cd is valid
+				if finish_hours > 0 and finish_hours < 18 then
+
+					-- if yes save
+					-- _DB_[pname .. "wqoneshot"] = GetServerTime() + finish;
+					local tmp = GetServerTime() + finish;
+					--print("SAAIIIIIIIIFF cus valid cd");
+					--print("getservertime: " .. GetServerTime());
+					--print("finish: " .. finish);
+					--print("finish_hours: " .. finish_hours);
+					--print("ready at (tmp): " .. tmp);
+					_DB_[pname .. "wqoneshot"] = tmp;
+				else
+					-- else do nothing -> value is 0 and on cd -> didnt save last time -> value is unknown
+					--print("new cd is not valid, setting to unknown");
+					_DB_[pname .. "wqoneshot"] = "unknown";
+					return 
+
+				end
+			-- else nothing changed -> return
+			else
+				--print("still not on cd");
+				_DB_[pname .. "wqoneshot"] = 0;
+				return
+
+			end
+
+		else 
+			--print("currently not 0")
+
+			-- check if valid (<=18h)
+			current_saved_val = current_saved_val - GetServerTime();
+			--print("tocheck: " .. current_saved_val);
+			current_saved_val_hours = math.floor(current_saved_val / 3600);
+			--print("tocheck: " .. current_saved_val_hours);
+
+			-- if not valid reset
+			if current_saved_val_hours < 0 or current_saved_val_hours > 18 then
+				--print("should be reset");
+				_DB_[pname .. "wqoneshot"] = "unknown";
+			
+			-- else stop -> all ok
+			else
+				--print("should not be reset");
+				return
+
+			end
+		end
 	end
+end
+
+
+function update_emissary()
+	local count = count_open_emissary_quests();
+
+	-- reduce count if too old
+	_DB_[pname .. "emissary_date"] = GetServerTime() + GetQuestResetTime();
+	_DB_[pname .. "emissary"] = count;
 end
 
 
@@ -1300,7 +1472,7 @@ function new_shit()
 	--print("return: " .. time_diff(5, 17, 12, 2, 5, 18, 11, 3));
 	--print("return: " .. time_diff(5, 17, 12, 3, 5, 18, 11, 3));
 	--print("return: " .. time_diff(5, 17, 12, 3, 5, 18, 11, 2));
-
+	--count_open_emisarry_quests();
 	return
 end
 
