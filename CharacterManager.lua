@@ -1,4 +1,4 @@
-local version = ".5";
+local version = GetAddOnMetadata("CharacterManager", "version");
 local pname = UnitName("player");
 local _, pclass = UnitClass("player");
 local LA = LibStub:GetLibrary("LegionArtifacts-1.1")
@@ -11,7 +11,7 @@ local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor
 local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
 local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
 
-local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "Nighthold ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
+local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "EN ID", "ToV ID", "Nighthold ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
 
 local window_shown = false;
 local options_shown = false;
@@ -81,8 +81,8 @@ local months = {
 local addon = LibStub("AceAddon-3.0"):NewAddon("CharacterManager", "AceConsole-3.0")
 local eoscmLDB = LibStub("LibDataBroker-1.1"):NewDataObject("eoscm_minimap", {
 	type = "data source",
-	text = "CharacterManager",
-	icon = "Interface\\AddOns\\CharacterManager\\eoscm",
+	text = "you_selected_the_wrong_data_broker_look_for_Eoh's CharacterManager",
+	icon = "Interface\\AddOns\\CharacterManager\\Icon\\eoscm",
 	OnClick = function() show_window() end,
 	OnTooltipShow = function(tt)
 		tt:AddLine("Eoh's CharacterManager");
@@ -91,6 +91,7 @@ local eoscmLDB = LibStub("LibDataBroker-1.1"):NewDataObject("eoscm_minimap", {
 	end,
 })
 local icon = LibStub("LibDBIcon-1.0")
+
 
 function addon:OnInitialize()
 	-- Obviously you'll need a ## SavedVariables: BunniesDB line in your TOC, duh!
@@ -105,6 +106,7 @@ function addon:OnInitialize()
 	self:RegisterChatCommand("hidemm", "HideMiniMap")
 end
 
+
 function addon:HideMiniMap()
 	self.db.profile.minimap.hide = not self.db.profile.minimap.hide
 	if self.db.profile.minimap.hide then
@@ -113,6 +115,23 @@ function addon:HideMiniMap()
 		icon:Show("eoscm_minimap")
 	end
 end
+
+
+local ldb = LibStub:GetLibrary("LibDataBroker-1.1")
+local dataobj = ldb:NewDataObject("Eoh's CharacterManager", {
+	type = "data source",
+	icon = "Interface\\AddOns\\CharacterManager\\Icon\\eoscm",
+	text = "-",
+	OnClick = function() show_window() end,
+	OnTooltipShow = function(tt) 
+		tt:AddLine(colors["WHITE"] .. "Eoh's CharacterManager " .. version .. "|r");
+		tt:AddLine(" ");
+		tt:AddLine(build_content()); 
+	end,
+})
+dataobj.text = "CharacterManager";
+
+
 -------------------------------------------------------------------------------------
 
 
@@ -152,6 +171,8 @@ function cm_frame:OnEvent(event, name)
 				["Seals obtained"] = true, 
 				["Itemlevel"] = true, 
 				["OResources"] = true, 
+				["EN ID"] = true,
+				["ToV ID"] = true,
 				["Nighthold ID"] = true,
 				["WQ 1shot"] = true,
 				["Emissary Chests"] = true,
@@ -200,7 +221,9 @@ function cm_frame:OnEvent(event, name)
 				tracked_chars = tracked_chars + 1;
 			end
 		end
-	 	cm_frame:SetSize(300, (tracked_chars *  (155 * (options_checked * table.getn(_NAMES_) / table.getn(option_choices)) / table.getn(_NAMES_)) + 145));
+
+		-- main window
+	 	cm_frame:SetSize(300, tracked_chars * (12 * options_checked) + 190 + tracked_chars * 7);
 		cm_frame:SetPoint("CENTER", UIParent, "CENTER");
 		cm_frame:EnableMouse(true);
 		cm_frame:SetMovable(true);
@@ -211,7 +234,7 @@ function cm_frame:OnEvent(event, name)
 		cm_frame.title = cm_frame:CreateFontString();
 		cm_frame.title:SetFontObject("GameFontHighlight");
 		cm_frame.title:SetPoint("LEFT", cm_frame.TitleBg, "LEFT", 5, 0);
-		cm_frame.title:SetText("Eoh's CharacterManager - v"..version);
+		cm_frame.title:SetText("Eoh's CharacterManager - v " .. version);
 
 		cm_frame.options_button = CreateFrame("Button", "options_button", cm_frame, "GameMenuButtonTemplate");
 		cm_frame.options_button:SetPoint("BOTTOMLEFT", cm_frame, "BOTTOMLEFT", 10, 10);
@@ -281,15 +304,15 @@ end
 
 
 function init_options_window()
-	local tracked_chars = 0;
+	local chars = 0;
 	for idx, item in ipairs(_NAMES_) do
-		if _TRACKED_CHARS_[item] ~= nil and _TRACKED_CHARS_[item] == true then
-			tracked_chars = tracked_chars + 1;
+		if _NAMES_[item] ~= nil and _NAMES_[item] == true then
+			chars = chars + 1;
 		end
 	end
 
 	cm_frame.options_frame = CreateFrame("FRAME", "CharacterManagerOptions", cm_frame, "BasicFrameTemplateWithInset");
- 	cm_frame.options_frame:SetSize(250, (45 * table.getn(option_choices) + 50 + 45 * tracked_chars));
+ 	cm_frame.options_frame:SetSize(250, (50 * table.getn(option_choices) + 55 + 45 * chars));
 	cm_frame.options_frame:SetPoint("TOPLEFT", cm_frame, "TOPRIGHT");
 	cm_frame.options_frame:SetScript("OnHide", hide_options);
 
@@ -414,8 +437,30 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 
+	cm_frame.options_frame.button11 = CreateFrame("CheckButton", option_choices[11], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button11:SetPoint("TOP", cm_frame.options_frame.button10, "BOTTOM");
+	cm_frame.options_frame.button11:SetText(retarded_space_solutions_ltd .. option_choices[11]);
+	cm_frame.options_frame.button11:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[11]] then
+		cm_frame.options_frame.button11:Click();
+	end
+	cm_frame.options_frame.button11:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
 
-	local last_button = cm_frame.options_frame.button10;
+	cm_frame.options_frame.button12 = CreateFrame("CheckButton", option_choices[12], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button12:SetPoint("TOP", cm_frame.options_frame.button11, "BOTTOM");
+	cm_frame.options_frame.button12:SetText(retarded_space_solutions_ltd .. option_choices[12]);
+	cm_frame.options_frame.button12:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[12]] then
+		cm_frame.options_frame.button12:Click();
+	end
+	cm_frame.options_frame.button12:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+
+	local last_button = cm_frame.options_frame.button12;
 	for idx, item in ipairs(_NAMES_) do
 
 		if _TRACKED_CHARS_[item] ~= nil then
@@ -524,62 +569,78 @@ function build_content()
 			s = s .. colors[_DB_[n.."cls"]] .. n .. "|r" .. "\n";
 
 			if _OPTIONS_[option_choices[1]] then
-				s = s .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")\n";
+				if tonumber(_DB_[n.."hkey"]) == 0 then
+					s = s .. colors["WHITE"] .. "M+ done: " .. colors["RED"] .. _DB_[n.."hkey"] .. "|r" .. colors["WHITE"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")|r\n";
+				else
+					s = s .. colors["WHITE"] .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")|r\n";
+				end
 			end
 
 			if _OPTIONS_[option_choices[2]] then
-				s = s .. "Artifact lvl: " .. _DB_[n.."artifactlevel"] .. " (AK: " .. _DB_[n.."level"] .. ")" .. "\n";
+				s = s .. colors["WHITE"] .. "Artifact lvl: " .. _DB_[n.."artifactlevel"] .. " (AK: " .. _DB_[n.."level"] .. ")" .. "|r\n";
 			end
 			
 			if _OPTIONS_[option_choices[3]] then
-				s = s .. "Next AK: " .. target_date_to_time(n) .. "\n";
+				s = s .. colors["WHITE"] .. "Next AK: " .. target_date_to_time(n) .. "|r\n";
 			end
 
 			if _OPTIONS_[option_choices[4]] then
-				s = s .. "Seals: " .. _DB_[n.."seals"] .. "/6" .. "\n";
+				s = s .. colors["WHITE"] .. "Seals: " .. _DB_[n.."seals"] .. "/6" .. "|r\n";
 			end
 
 			if _OPTIONS_[option_choices[5]] then
 				if _DB_[n.."sealsobt"] <= 2 then 
-					s = s .. "Seals obtained: " .. colors["RED"] .. _DB_[n.."sealsobt"].. "|r" .. "/3" .. "\n";	
+					s = s .. colors["WHITE"] .. "Seals obtained: " .. colors["RED"] .. _DB_[n.."sealsobt"].. "|r" .. colors["WHITE"] .. "/3" .. "|r\n";	
 				else
-					s = s .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "\n";	
+					s = s .. colors["WHITE"] .. "Seals obtained: " .. _DB_[n.."sealsobt"] .. "/3" .. "|r\n";	
 				end
 			end
 
 			if _OPTIONS_[option_choices[6]] then
-				s = s .. "Itemlevel: " .. _DB_[n.."itemlevel"] .. "/" .. _DB_[n.."itemlevelbag"] .. "\n";
+				s = s .. colors["WHITE"] .. "Itemlevel: " .. _DB_[n.."itemlevel"] .. "/" .. _DB_[n.."itemlevelbag"] .. "|r\n";
 			end
 
 			if _OPTIONS_[option_choices[7]] then
-				s = s .. "OResources: " .. _DB_[n.."orderres"] .. "\n";
+				s = s .. colors["WHITE"] .. "OResources: " .. _DB_[n.."orderres"] .. "|r\n";
 			end
 
 			if _OPTIONS_[option_choices[8]] then
-				if _DB_[n.."nhraidid"] ~= "-" then
-					s = s .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "\n";
+				if _DB_[n.."enraidid"] ~= "-" and _DB_[n.."enraidid"] ~= "?" then
+					s = s .. colors["WHITE"] .. "Emerald Nightmare: " .. _DB_[n.."enraidid"] .. "|r\n";
 				end
 			end
 
 			if _OPTIONS_[option_choices[9]] then
-				local wq_oneshot_time = _DB_[n.."wqoneshot"];
-				if wq_oneshot_time == "unknown" then
-					s = s .. "WQ 1shot CD unknown :(" .. "\n";
-				elseif _DB_[n.."wqoneshot"] ~= -1 then
-					if GetServerTime() >= _DB_[n.."wqoneshot"] then
-						s = s .. "WQ 1shot: " .. colors["GREEN"] .. "UP" .. "|r" .. "\n";
-					else
-						
-						s = s .. "WQ 1shot in: " .. wq_oneshot_remaining(n) .. "\n";
-					end
+				if _DB_[n.."tovraidid"] ~= "-" and _DB_[n.."tovraidid"] ~= "?" then
+					s = s .. colors["WHITE"] .. "Trials of Valor: " .. _DB_[n.."tovraidid"] .. "|r\n";
 				end
 			end
 
 			if _OPTIONS_[option_choices[10]] then
+				if _DB_[n.."nhraidid"] ~= "-" and _DB_[n.."nhraidid"] ~= "?" then
+					s = s .. colors["WHITE"] .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "|r\n";
+				end
+			end
+
+			if _OPTIONS_[option_choices[11]] then
+				local wq_oneshot_time = _DB_[n.."wqoneshot"];
+				if wq_oneshot_time == "unknown" then
+					s = s .. colors["WHITE"] .. "WQ 1shot CD unknown :(" .. "|r\n";
+				elseif _DB_[n.."wqoneshot"] ~= -1 then
+					if GetServerTime() >= _DB_[n.."wqoneshot"] then
+						s = s .. colors["WHITE"] .. "WQ 1shot: |r" .. colors["GREEN"] .. "UP" .. "|r" .. "|r\n";
+					else
+						
+						s = s .. colors["WHITE"] .. "WQ 1shot in: " .. wq_oneshot_remaining(n) .. "|r\n";
+					end
+				end
+			end
+
+			if _OPTIONS_[option_choices[12]] then
 				if _DB_[n .. "emissary"] and _DB_[n .. "emissary_date"] then
-					s = s .. "Emissary chests (estimated): " .. emissary_string(n) .. "\n";
+					s = s .. colors["WHITE"] .. "Emissary chests (estimated): " .. emissary_string(n) .. "|r\n";
 				else
-					s = s .. "Emissary chests: Unknown :(\n";
+					s = s .. colors["WHITE"] .. "Emissary chests: Unknown :(|r\n";
 				end
 			end
 
@@ -589,7 +650,7 @@ function build_content()
 		end
 	end
 	s = s .. "\n\n\n" .. colors["RED"] .. "Open your artifact weapon to force a data refresh." .. "|r" .. "\n";
-	s = s .. colors["RED"] .. "The window only resizes after reloads." .. "|r" .. "\n\n";
+	s = s .. colors["RED"] .. "This window only resizes after reloads." .. "|r" .. "\n\n";
 	s = s .. "Use /hidemm to hide the minimap icon." .. "\n"; 
 	return s
 end
@@ -651,6 +712,14 @@ function init()
 	 		_DB_[char_name .. "nhraidid"] = "?";
 	 	end
 
+	 	if not _DB_[char_name .. "enraidid"] then
+	 		_DB_[char_name .. "enraidid"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "tovraidid"] then
+	 		_DB_[char_name .. "tovraidid"] = "?";
+	 	end
+
 	 	if not _DB_[char_name .. "wqoneshot"] then
 	 		_DB_[char_name .. "wqoneshot"] = -1;
 	 	end
@@ -680,6 +749,8 @@ function updates()
 	hkey_update();
 	akremain_update();
 	update_raidid();
+	update_raidid_en();
+	update_raidid_tov();
 	update_wqoneshot();
 	update_emissary();
 
@@ -1260,23 +1331,23 @@ function update_raidid()
 
 		if name == "The Nighthold" and difficultyName == "Mythic" and locked then
 			if encounterProgress < numEncounters then
-			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "M ";
+			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
 			else
-				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M ";
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
 			end
 
 		elseif name == "The Nighthold" and difficultyName == "Heroic" and locked then
 			if encounterProgress < numEncounters then
-				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "H ";
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
 			else
-				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H ";
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
 			end
 
 		elseif name == "The Nighthold" and difficultyName == "Normal" and locked then
 			if encounterProgress < numEncounters then
-				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. "/" .. tostring(numEncounters) .. "N ";
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
 			else
-				s = s .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N ";
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N |r";
 			end
 
 		end
@@ -1285,6 +1356,78 @@ function update_raidid()
 		s = "-";
 	end
 	_DB_[pname.."nhraidid"] = s;
+end
+
+function update_raidid_tov()
+	instances = GetNumSavedInstances();
+	local s = "";
+
+	for i=1, instances do
+		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
+
+		if name == "Trial of Valor" and difficultyName == "Mythic" and locked then
+			if encounterProgress < numEncounters then
+			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
+			end
+
+		elseif name == "Trial of Valor" and difficultyName == "Heroic" and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
+			end
+
+		elseif name == "Trial of Valor" and difficultyName == "Normal" and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N |r";
+			end
+
+		end
+	end
+	if s == "" then 
+		s = "-";
+	end
+	_DB_[pname.."tovraidid"] = s;
+end
+
+function update_raidid_en()
+	instances = GetNumSavedInstances();
+	local s = "";
+
+	for i=1, instances do
+		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
+
+		if name == "The Emerald Nightmare" and difficultyName == "Mythic" and locked then
+			if encounterProgress < numEncounters then
+			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
+			end
+
+		elseif name == "The Emerald Nightmare" and difficultyName == "Heroic" and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
+			end
+
+		elseif name == "The Emerald Nightmare" and difficultyName == "Normal" and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N |r";
+			end
+
+		end
+	end
+	if s == "" then 
+		s = "-";
+	end
+	_DB_[pname.."enraidid"] = s;
 end
 
 
@@ -1480,3 +1623,4 @@ end
 -- wq oneshot?
 -- auf aktuellem char auslesen, ob AK rdy
 -- split files
+-- wqoneshot
