@@ -9,7 +9,7 @@ local week = 604800;
 local na_reset  = 1486479600;
 local eu_reset  = 1485327600;
 
-local dungeons = {"Darkheart Thicket-DHT", "Eye of Azshara-EoA", "Halls of Valor-HoV", "Neltharion's Lair-NL", "Black Rook Hold-BRH", "Maw of Souls-MoS", "Vault of the Wardens-VotW", "Return to Karazhan: Lower-LK", "Return to Karazhan: Upper-UK", "Cathedral of Eternal Night-CoeN", "Court of Stars-CoS", "The Arcway-TA", "Seat of the Triumvirate-SotT"};
+local dungeons = {"Darkheart Thicket-DHT", "Das Finsterherzdickicht-DHT", "Eye of Azshara-EoA", "Das Auge Azsharas-EoA", "Halls of Valor-HoV", "Die Hallen der Tapferkeit-HoV", "Neltharion's Lair-NL", "Neltharion's Hort-NL", "Neltharion's Lair-NL", "Black Rook Hold-BRH", "Die Rabenwehr-BRH", "Maw of Souls-MoS", "Der Seelenschlund-MoS", "Vault of the Wardens-VotW", "Das Verließ der Wächterinnen-VotW", "Return to Karazhan: Lower-LK", "Untere Rückkehr nach Karazhan-LK", "Return to Karazhan: Upper-UK", "Obere Rückkehr nach Karazhan-UK", "Cathedral of Eternal Night-CoeN", "Kathedrale der Ewigen Nacht-CoeN", "Court of Stars-CoS", "Der Hof der Sterne-CoS", "The Arcway-TA", "Der Arkus-TA", "Seat of the Triumvirate-SotT", "Sitz des Triumvirats-SotT"};
 local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
 local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
 
@@ -21,17 +21,29 @@ local mplus_shown = false;
 
 local colors = {
     ["DEATHKNIGHT"] = "|cffC41F3B",
+    ["Death Knight"] = "|cffC41F3B",
     ["DEMONHUNTER"] = "|cffA330C9",
+    ["Demon Hunter"] = "|cffA330C9",
     ["DRUID"]   = "|cffFF7D0A",
+    ["Druid"]   = "|cffFF7D0A",
     ["HUNTER"]  = "|cffABD473",
+    ["Hunter"]  = "|cffABD473",
     ["MAGE"]    = "|cff69CCF0",
+    ["Mage"]    = "|cff69CCF0",
     ["MONK"]    = "|cff00FF96",
+    ["Monk"]    = "|cff00FF96",
     ["PALADIN"] = "|cffF58CBA",
+    ["Paladin"] = "|cffF58CBA",
     ["PRIEST"]  = "|cffffffff",
+    ["Priest"]  = "|cffffffff",
     ["ROGUE"]   = "|cffFFF569",
+    ["Rogue"]   = "|cffFFF569",
     ["SHAMAN"]  = "|cff0070DE",
+    ["Shaman"]  = "|cff0070DE",
     ["WARLOCK"] = "|cff9482C9",
+    ["Warlock"] = "|cff9482C9",
     ["WARRIOR"] = "|cffC79C6E",
+    ["Warrior"] = "|cffC79C6E",
     ["GOLD"] = "|cffffcc00",
     ["RED"] = "|cffff0000",
     ["UNKNOWN"]  = "|cffffffff",
@@ -162,6 +174,12 @@ cm_frame:RegisterEvent("PLAYER_LOGOUT");
 cm_frame:RegisterEvent("QUEST_FINISHED");
 cm_frame:RegisterEvent("CHAT_MSG_ADDON");
 cm_frame:RegisterEvent("UNIT_INVENTORY_CHANGED");
+cm_frame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+reg_ping = RegisterAddonMessagePrefix("eoscm-ping")
+reg_update = RegisterAddonMessagePrefix("eoscm-update")
+if not reg_ping or not reg_update then
+	print("[eoscm] The M+ key synchronization might not work, try reloading :(")
+end
 
 function cm_frame:OnEvent(event, name, message, channel, sender)
 	if event == "ADDON_LOADED" then
@@ -243,7 +261,10 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 			end
 
 			-- main window
-		 	cm_frame:SetSize(300, (tracked_chars * (15 * options_checked)) + 155);
+			multi = 15
+			text = 155
+			--print("tracked chars: " .. tracked_chars .. " opt checked: " .. options_checked)
+		 	cm_frame:SetSize(300, text + (tracked_chars * (multi * options_checked)));
 			cm_frame:SetPoint("CENTER", UIParent, "CENTER");
 			cm_frame:EnableMouse(true);
 			cm_frame:SetMovable(true);
@@ -296,24 +317,23 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 		 	init();
 		 	updates();
 	 	end
-
 	elseif event == "CHAT_MSG_ADDON" then
-		if name == "eoscm-ping" and message == "ping" and (channel == "GUILD" or channel == "PARTY") then
-			print("ping received from " .. sender .. " via " .. channel);
-			answer_ping(channel);
+		if name == "eoscm-ping" and message == "ping" and (channel == "GUILD" or channel == "PARTY" or channel == "WHISPER") then
+			--print("ping received from " .. sender .. " via " .. channel);
+			answer_ping(channel, sender);
 
 		elseif name == "eoscm-update" then
-			print("received key update from " .. sender .. ": " .. message);
+			--print("received key update from " .. sender .. ": " .. message);
 
 			-- other server
 			if contains(_MPLUS_BUDDIES_, sender) then
-				print("allrdy known (not my server): " .. sender);
+				--print("allrdy known (not my server): " .. sender);
 				_MPLUS_KEYS_[sender] = message;
 			else
 			-- my server 
 				for _, buddy in ipairs(_MPLUS_BUDDIES_) do
 					if string.find(sender, buddy) then
-						print("allrdy known (my server): " .. buddy);
+						--print("allrdy known (my server): " .. buddy);
 						_MPLUS_KEYS_[buddy] = message;
 					end
 				end
@@ -330,72 +350,135 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 	 	end
 	end
 end
+cm_frame:SetScript("OnEvent", cm_frame.OnEvent);
 
 
-function toggle_options_window()
-	if options_shown == false then
-		show_options();
+--slash commands
+SLASH_CM1 = "/eoscm";
+function SlashCmdList.CM(msg)
+	--print(msg);
+	if msg == "reset" then
+		complete_reset();
+
+	elseif string.match(msg, "rm") then 
+		if remove_character(msg) then 
+			ReloadUI();
+		end 
+
+	elseif string.match(msg, "rbud") then 
+		remove_buddy(msg);
+		-- ReloadUI();
+
+	elseif msg == "weekly" then 
+		weekly_reset(msg);
+		ReloadUI();
+
+	elseif msg == "debug" then
+		debug();
+
 	else
-		hide_options();
+		show_window();
 	end
 end
 
 
-function show_options()
-	if not cm_frame.options_frame then
-		init_options_window();
+-- init values
+function init()
+	-- init name
+	if not contains(_NAMES_, pname)  then 
+		table.insert(_NAMES_, pname);
 	end
-	options_shown = true;
-	cm_frame.options_frame:Show();
-	cm_frame.options_frame.weekly_button:Show();
-	cm_frame.options_frame.reset_button:Show();
+
+	if _NAMES_ == nil then
+		_NAMES_ = {};
+	end
+
+	if _MPLUS_BUDDIES_ == nil then
+		_MPLUS_BUDDIES_ = {};
+	end
+
+	if _MPLUS_KEYS_ == nil then
+		_MPLUS_KEYS_ = {};
+	end
+
+	if _MPLUS_CLASS_ == nil then
+		_MPLUS_CLASS_ = {};
+	end
+
+	for _, char_name in ipairs(_NAMES_) do 
+		-- init vars
+	 	if not _DB_[char_name .. "cls"] then
+	 		_DB_[char_name .. "cls"] = "UNKNOWN";
+	 	end
+
+	 	if not _DB_[char_name .. "level"] then
+	 		_DB_[char_name .. "level"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "artifactlevel"] then
+	 		_DB_[char_name .. "artifactlevel"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "hkey"] then
+	 		_DB_[char_name .. "hkey"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "bagkey"] then
+	 		_DB_[char_name .. "bagkey"] = "no key";
+	 	end     
+
+	 	if not _DB_[char_name .. "seals"] then
+	 		_DB_[char_name .. "seals"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "itemlevel"] then
+	 		_DB_[char_name .. "itemlevel"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "itemlevelbag"] then
+	 		_DB_[char_name .. "itemlevelbag"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "orderres"] then
+	 		_DB_[char_name .. "orderres"] = 0;
+	 	end
+
+	 	if not _DB_[char_name .. "akremain"] then
+	 		_DB_[char_name .. "akremain"] = "0 0 0 0";
+	 	end
+
+	 	if not _DB_[char_name .. "nhraidid"] then
+	 		_DB_[char_name .. "nhraidid"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "enraidid"] then
+	 		_DB_[char_name .. "enraidid"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "tovraidid"] then
+	 		_DB_[char_name .. "tovraidid"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "tosraidid"] then
+	 		_DB_[char_name .. "tosraidid"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "wqoneshot"] then
+	 		_DB_[char_name .. "wqoneshot"] = -1;
+	 	end
+
+	 	if not _DB_[pname.."emissary"] then
+	 		_DB_[pname.."emissary"] = 0;
+	 	end
+
+	  	if not _DB_[pname.."emissary_date"] then
+	 		_DB_[pname.."emissary_date"] = 0;
+	 	end
+	 end
 end
 
 
-function hide_options()
-	if not cm_frame.options_frame then
-		init_options_window();
-	end
-	options_shown = false;
-	cm_frame.options_frame:Hide();
-	cm_frame.options_frame.weekly_button:Hide();
-	cm_frame.options_frame.reset_button:Hide();
-end
-
-
-function toggle_mplus_window()
-	if mplus_shown == false then
-		show_mplus();
-	else
-		hide_mplus();
-	end
-end
-
-
-function show_mplus()
-	if not cm_frame.mplus_frame then
-		init_mplus_window();
-	end
-	mplus_shown = true;
-	cm_frame.mplus_frame:Show();
-	cm_frame.mplus_frame.sync_button:Show();
-	cm_frame.mplus_frame.refresh_button:Show();
-	cm_frame.mplus_frame.reset_button:Show();
-end
-
-
-function hide_mplus()
-	if not cm_frame.mplus_frame then
-		mplus_frame();
-	end
-	mplus_shown = false;
-	cm_frame.mplus_frame:Hide();
-	cm_frame.mplus_frame.sync_button:Hide();
-	cm_frame.mplus_frame.refresh_button:Hide();
-	cm_frame.mplus_frame.reset_button:Hide();
-end
-
-
+-- windows
 function init_options_window()
 	local chars = 0;
 	for idx, item in ipairs(_NAMES_) do
@@ -608,8 +691,8 @@ function init_options_window()
 	cm_frame.options_frame.reset_button:SetHighlightFontObject("GameFontHighlightLarge");
 	cm_frame.options_frame.reset_button:SetScript("OnClick", complete_reset);
 	cm_frame.options_frame.reset_button:Hide();
-
 end
+
 
 function init_mplus_window()
 	buddies = 0;
@@ -619,10 +702,12 @@ function init_mplus_window()
 	end
 
 	cm_frame.mplus_frame = CreateFrame("FRAME", "CharacterManagerMPlus", cm_frame, "BasicFrameTemplateWithInset");
-	if 75 + 50*buddies >= 375 then 
- 		cm_frame.mplus_frame:SetSize(250, 75 + 50*buddies + 50);
+	multi = 45
+	text = 125
+	if buddies > 4 then 
+ 		cm_frame.mplus_frame:SetSize(250, multi*buddies+text);
  	else 
- 		cm_frame.mplus_frame:SetSize(250, 375);
+ 		cm_frame.mplus_frame:SetSize(250, 425);
  	end
 	cm_frame.mplus_frame:SetPoint("TOPRIGHT", cm_frame, "TOPLEFT");
 	cm_frame.mplus_frame:SetScript("OnHide", hide_options);
@@ -657,33 +742,77 @@ function init_mplus_window()
 	cm_frame.mplus_frame.mplus_content = cm_frame.mplus_frame:CreateFontString("MPLUS_CONTENT", "OVERLAY");
 	cm_frame.mplus_frame.mplus_content:SetPoint("TOP", cm_frame.mplus_frame, "TOP", 0, -75);
 	cm_frame.mplus_frame.mplus_content:SetFontObject("GameFontHighlight");
-	cm_frame.mplus_frame.mplus_content:SetText(mplus_listing());
-	
+	cm_frame.mplus_frame.mplus_content:SetText(mplus_listing());	
 end
 
-cm_frame:SetScript("OnEvent", cm_frame.OnEvent);
-SLASH_CM1 = "/eoscm";
-function SlashCmdList.CM(msg)
-	if msg == "reset" then
-		complete_reset();
 
-	elseif string.match(msg, "rm") then 
-		remove_character(msg);
-		ReloadUI();
-
-	elseif msg == "weekly" then 
-		weekly_reset(msg);
-		ReloadUI();
-
-	elseif msg == "debug" then
-		debug();
-
+-- options window settings
+function toggle_options_window()
+	if options_shown == false then
+		show_options();
 	else
-		show_window();
+		hide_options();
 	end
 end
 
 
+function show_options()
+	if not cm_frame.options_frame then
+		init_options_window();
+	end
+	options_shown = true;
+	cm_frame.options_frame:Show();
+	cm_frame.options_frame.weekly_button:Show();
+	cm_frame.options_frame.reset_button:Show();
+end
+
+
+function hide_options()
+	if not cm_frame.options_frame then
+		init_options_window();
+	end
+	options_shown = false;
+	cm_frame.options_frame:Hide();
+	cm_frame.options_frame.weekly_button:Hide();
+	cm_frame.options_frame.reset_button:Hide();
+end
+
+
+-- mplus window settings
+function toggle_mplus_window()
+	if mplus_shown == false then
+		show_mplus();
+	else
+		hide_mplus();
+	end
+end
+
+
+function show_mplus()
+	if not cm_frame.mplus_frame then
+		init_mplus_window();
+	end
+	mplus_shown = true;
+	cm_frame.mplus_frame:Show();
+	cm_frame.mplus_frame.sync_button:Show();
+	cm_frame.mplus_frame.refresh_button:Show();
+	cm_frame.mplus_frame.reset_button:Show();
+end
+
+
+function hide_mplus()
+	if not cm_frame.mplus_frame then
+		mplus_frame();
+	end
+	mplus_shown = false;
+	cm_frame.mplus_frame:Hide();
+	cm_frame.mplus_frame.sync_button:Hide();
+	cm_frame.mplus_frame.refresh_button:Hide();
+	cm_frame.mplus_frame.reset_button:Hide();
+end
+
+
+-- main window settings 
 function toogle_window()
 	if window_shown == false then
 		window_shown = true;
@@ -714,6 +843,7 @@ function show_window()
 end
 
 
+-- text window content
 function build_content()
 	updates();
 
@@ -726,9 +856,9 @@ function build_content()
 
 			if _OPTIONS_[option_choices[1]] then
 				if tonumber(_DB_[n.."hkey"]) < 10 then
-					s = s .. colors["WHITE"] .. "M+ done: " .. colors["RED"] .. _DB_[n.."hkey"] .. "|r" .. colors["WHITE"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")|r\n";
+					s = s .. colors["WHITE"] .. "Highest M+: " .. colors["RED"] .. _DB_[n.."hkey"] .. "|r" .. colors["WHITE"] .. " (Bag: " .. _DB_[n.."bagkey"] .. ")|r\n";
 				else
-					s = s .. colors["WHITE"] .. "M+ done: " .. _DB_[n.."hkey"] .. " (Bag " .. _DB_[n.."bagkey"] .. ")|r\n";
+					s = s .. colors["WHITE"] .. "Highest M+: " .. _DB_[n.."hkey"] .. " (Bag: " .. _DB_[n.."bagkey"] .. ")|r\n";
 				end
 			end
 
@@ -761,27 +891,27 @@ function build_content()
 			end
 
 			if _OPTIONS_[option_choices[8]] then
-				if _DB_[n.."enraidid"] ~= "-" and _DB_[n.."enraidid"] ~= "?" then
+				--if _DB_[n.."enraidid"] ~= "-" and _DB_[n.."enraidid"] ~= "?" then
 					s = s .. colors["WHITE"] .. "Emerald Nightmare: " .. _DB_[n.."enraidid"] .. "|r\n";
-				end
+				--end
 			end
 
 			if _OPTIONS_[option_choices[9]] then
-				if _DB_[n.."tovraidid"] ~= "-" and _DB_[n.."tovraidid"] ~= "?" then
+				--if _DB_[n.."tovraidid"] ~= "-" and _DB_[n.."tovraidid"] ~= "?" then
 					s = s .. colors["WHITE"] .. "Trials of Valor: " .. _DB_[n.."tovraidid"] .. "|r\n";
-				end
+				--end
 			end
 
 			if _OPTIONS_[option_choices[10]] then
-				if _DB_[n.."nhraidid"] ~= "-" and _DB_[n.."nhraidid"] ~= "?" then
+				--if _DB_[n.."nhraidid"] ~= "-" and _DB_[n.."nhraidid"] ~= "?" then
 					s = s .. colors["WHITE"] .. "Nighthold: " .. _DB_[n.."nhraidid"] .. "|r\n";
-				end
+				--end
 			end
 
 			if _OPTIONS_[option_choices[11]] then
-				if _DB_[n.."tosraidid"] ~= "-" and _DB_[n.."tosraidid"] ~= "?" then
+				--if _DB_[n.."tosraidid"] ~= "-" and _DB_[n.."tosraidid"] ~= "?" then
 					s = s .. colors["WHITE"] .. "Tomb of Sargeras: " .. _DB_[n.."tosraidid"] .. "|r\n";
-				end
+				--end
 			end
 
 			if _OPTIONS_[option_choices[12]] then
@@ -820,130 +950,18 @@ end
 
 function mplus_listing()
 	s = "";
+
 	for _, buddy in ipairs(_MPLUS_BUDDIES_) do
 		if _MPLUS_KEYS_[buddy] then
-			s = s .. buddy .. " - class (TBD)" .. "\n" .. _MPLUS_KEYS_[buddy] .. "\n\n"
+			s = s .. buddy .. " - " .. colors[_MPLUS_CLASS_[buddy]] .. _MPLUS_CLASS_[buddy] .. "|r" .. "\n" .. _MPLUS_KEYS_[buddy] .. "\n\n"
 		else
-			s = s .. buddy .. " - class (TBD)" .. "\n" .. "?" .. "\n\n"
+			s = s .. buddy .. " - " .. colors[_MPLUS_CLASS_[buddy]] .. _MPLUS_CLASS_[buddy] .. "|r" .. "\n" .. "?" .. "\n\n"
 		end
 	end
+
+	s = s .. "\n\n" .. colors["RED"] .. "Synchronize keys with \nyour m+ grp!\nEveryone needs this addon.\n\nUse '/eoscm rbud NAME'\nto remove a single name.|r"
+
 	return s
-end
-
-
-function init()
-	-- init name
-	if not contains(_NAMES_, pname)  then 
-		table.insert(_NAMES_, pname);
-	end
-
-	if _NAMES_ == nil then
-		_NAMES_ = {};
-	end
-
-	if _MPLUS_BUDDIES_ == nil then
-		_MPLUS_BUDDIES_ = {};
-	end
-
-	if _MPLUS_KEYS_ == nil then
-		_MPLUS_KEYS_ = {};
-	end
-
-	for _, char_name in ipairs(_NAMES_) do 
-		-- init vars
-	 	if not _DB_[char_name .. "cls"] then
-	 		_DB_[char_name .. "cls"] = "UNKNOWN";
-	 	end
-
-	 	if not _DB_[char_name .. "level"] then
-	 		_DB_[char_name .. "level"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "artifactlevel"] then
-	 		_DB_[char_name .. "artifactlevel"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "hkey"] then
-	 		_DB_[char_name .. "hkey"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "bagkey"] then
-	 		_DB_[char_name .. "bagkey"] = "no key";
-	 	end     
-
-	 	if not _DB_[char_name .. "seals"] then
-	 		_DB_[char_name .. "seals"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "itemlevel"] then
-	 		_DB_[char_name .. "itemlevel"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "itemlevelbag"] then
-	 		_DB_[char_name .. "itemlevelbag"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "orderres"] then
-	 		_DB_[char_name .. "orderres"] = 0;
-	 	end
-
-	 	if not _DB_[char_name .. "akremain"] then
-	 		_DB_[char_name .. "akremain"] = "0 0 0 0";
-	 	end
-
-	 	if not _DB_[char_name .. "nhraidid"] then
-	 		_DB_[char_name .. "nhraidid"] = "?";
-	 	end
-
-	 	if not _DB_[char_name .. "enraidid"] then
-	 		_DB_[char_name .. "enraidid"] = "?";
-	 	end
-
-	 	if not _DB_[char_name .. "tovraidid"] then
-	 		_DB_[char_name .. "tovraidid"] = "?";
-	 	end
-
-	 	if not _DB_[char_name .. "tosraidid"] then
-	 		_DB_[char_name .. "tosraidid"] = "?";
-	 	end
-
-	 	if not _DB_[char_name .. "wqoneshot"] then
-	 		_DB_[char_name .. "wqoneshot"] = -1;
-	 	end
-
-	 	if not _DB_[pname.."emissary"] then
-	 		_DB_[pname.."emissary"] = 0;
-	 	end
-
-	  	if not _DB_[pname.."emissary_date"] then
-	 		_DB_[pname.."emissary_date"] = 0;
-	 	end
-	 end
-end
-
-
-function updates()
-	--print("updating...")
-	check_for_id_reset();
-
-	seals_update();
-	seals_obtained_update();
-	level_update();
-	orderres_update();
-	itemlevel_update();
-	artifactlevel_update();
-	bagkey_update();
-	hkey_update();
-	akremain_update();
-	key_in_bags();
-	update_raidid();
-	update_raidid_en();
-	update_raidid_tov();
-	update_raidid_tos();
-	update_wqoneshot();
-	update_emissary();
-
-	new_shit();
 end
 
 
@@ -1245,16 +1263,22 @@ function time_diff(m1, d1, h1, min1, m2, d2, h2, min2)
 end
 
 
+-- mplus
 function ping_mplus()
-	print("pinging...")
+	--print("pinging...")
 	SendAddonMessage("eoscm-ping", "ping", "GUILD")
 	SendAddonMessage("eoscm-ping", "ping", "PARTY")
 end
 
-
-function answer_ping(channel)
-	print("answering ping via " .. channel .. " with " .. _DB_[pname .. "bagkey"])
-	SendAddonMessage("eoscm-update", _DB_[pname .. "bagkey"], channel)
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "iconqt")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Jpzxxraucher-Blackrock")
+function answer_ping(channel, sender)
+	--print("answering ping via " .. channel .. " with " .. _DB_[pname .. "bagkey"])
+	if channel == "WHISPER" then
+		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel, sender)
+	else
+		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel)
+	end
 end
 
 
@@ -1263,8 +1287,10 @@ function sync_group()
 		local name, rank, subgroup, level, class, fileName, zone, online, isDead, role, isML = GetRaidRosterInfo(i)
 		if name ~= pname then
 			if not contains(_MPLUS_BUDDIES_, name) then 
-				print("adding:" .. name)
+				buddy_class = UnitClass(name);
+				print("[eoscm] adding: " .. name .. " as " .. colors[buddy_class] .. buddy_class .. "|r")
 				table.insert(_MPLUS_BUDDIES_, name)
+				_MPLUS_CLASS_[name] = buddy_class
 			end
 		end	
 	end
@@ -1283,7 +1309,32 @@ function reset_mplus()
 	end
 end
 
+
 -- updater
+function updates()
+	--print("updating...")
+	check_for_id_reset();
+
+	seals_update();
+	seals_obtained_update();
+	level_update();
+	orderres_update();
+	itemlevel_update();
+	artifactlevel_update();
+	bagkey_update();
+	hkey_update();
+	akremain_update();
+	update_raidid();
+	update_raidid_en();
+	update_raidid_tov();
+	update_raidid_tos();
+	update_wqoneshot();
+	update_emissary();
+
+	new_shit();
+end
+
+
 function highest_key()
 	local maps = C_ChallengeMode.GetMapTable();
 	local highest_key = 0;
@@ -1303,7 +1354,7 @@ function key_in_bags()
     	for s=0, GetContainerNumSlots(b) do 
 	    	local link = GetContainerItemLink(b,s);
 	    	if link then
-		    	if string.match(link, "Keystone") then
+		    	if string.match(link, "Keystone") or string.match(link, "Schlüsselstein") then
 					printable = gsub(link, "\124", "\124\124");
 
 					firstpos = string.find(printable, ":")+1;
@@ -1562,29 +1613,34 @@ function akremain_update()
 	end
 end
 
+--Die Nachtfestung
+--Die Prüfung der Tapferkeit
+--Das Grabmal des Sargeras
+--Der Smaragdgrüne Alptraum
 
+-- NH
 function update_raidid()
 	instances = GetNumSavedInstances();
 	local s = "";
 
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
-
-		if name == "The Nighthold" and difficultyName == "Mythic" and locked then
+		--print(difficultyName)
+		if (name == "The Nighthold" or name == "Die Nachtfestung") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
 			if encounterProgress < numEncounters then
 			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
 			end
 
-		elseif name == "The Nighthold" and difficultyName == "Heroic" and locked then
+		elseif (name == "The Nighthold" or name == "Die Nachtfestung") and (difficultyName == "Heroic" or difficultyName == "Heroisch") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
 			end
 
-		elseif name == "The Nighthold" and difficultyName == "Normal" and locked then
+		elseif (name == "The Nighthold" or name == "Die Nachtfestung") and (difficultyName == "Normal" or difficultyName == "Normal") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
 			else
@@ -1599,28 +1655,29 @@ function update_raidid()
 	_DB_[pname.."nhraidid"] = s;
 end
 
+
+--TOV
 function update_raidid_tov()
 	instances = GetNumSavedInstances();
 	local s = "";
 
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
-
-		if name == "Trial of Valor" and difficultyName == "Mythic" and locked then
+		if (name == "Trial of Valor" or name == "Die Prüfung der Tapferkeit") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
 			if encounterProgress < numEncounters then
 			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
 			end
 
-		elseif name == "Trial of Valor" and difficultyName == "Heroic" and locked then
+		elseif (name == "Trial of Valor" or name == "Die Prüfung der Tapferkeit") and (difficultyName == "Heroic" or difficultyName == "Heroisch") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
 			end
 
-		elseif name == "Trial of Valor" and difficultyName == "Normal" and locked then
+		elseif (name == "Trial of Valor" or name == "Die Prüfung der Tapferkeit") and (difficultyName == "Normal" or difficultyName == "Normal") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
 			else
@@ -1635,6 +1692,8 @@ function update_raidid_tov()
 	_DB_[pname.."tovraidid"] = s;
 end
 
+
+-- EN
 function update_raidid_en()
 	instances = GetNumSavedInstances();
 	local s = "";
@@ -1642,21 +1701,21 @@ function update_raidid_en()
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
 
-		if name == "The Emerald Nightmare" and difficultyName == "Mythic" and locked then
+		if (name == "The Emerald Nightmare" or name == "Der Smaragdgrüne Albtraum") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
 			if encounterProgress < numEncounters then
 			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
 			end
 
-		elseif name == "The Emerald Nightmare" and difficultyName == "Heroic" and locked then
+		elseif (name == "The Emerald Nightmare" or name == "Der Smaragdgrüne Albtraum") and (difficultyName == "Heroic" or difficultyName == "Heroisch") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
 			end
 
-		elseif name == "The Emerald Nightmare" and difficultyName == "Normal" and locked then
+		elseif (name == "The Emerald Nightmare" or name == "Der Smaragdgrüne Albtraum") and (difficultyName == "Normal" or difficultyName == "Normal") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
 			else
@@ -1672,27 +1731,28 @@ function update_raidid_en()
 end
 
 
+--TOS
 function update_raidid_tos()
 	instances = GetNumSavedInstances();
 	local s = "";
 
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
-		if name == "Tomb of Sargeras" and difficultyName == "Mythic" and locked then
+		if (name == "Tomb of Sargeras" or name == "Das Grabmal des Sargeras") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
 			if encounterProgress < numEncounters then
 			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
 			end
 
-		elseif name == "Tomb of Sargeras" and difficultyName == "Heroic" and locked then
+		elseif (name == "Tomb of Sargeras" or name == "Das Grabmal des Sargeras") and (difficultyName == "Heroic" or difficultyName == "Heroisch") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
 			else
 				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
 			end
 
-		elseif name == "Tomb of Sargeras" and difficultyName == "Normal" and locked then
+		elseif (name == "Tomb of Sargeras" or name == "Das Grabmal des Sargeras") and (difficultyName == "Normal" or difficultyName == "Normal") and locked then
 			if encounterProgress < numEncounters then
 				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
 			else
@@ -1798,14 +1858,38 @@ function remove_character(msg)
 	local name_to_remove = lst[2];
 
 	if #lst ~= 2 or lst[1] ~= "rm" then
-		print("Command unknown! :(");
+		print("[eoscm] Command unknown! :(");
+		return false;
+	else 
+		if contains(_NAMES_, name_to_remove) then
+			print("[eoscm] Successfully removed: " .. table.remove(_NAMES_, find(_NAMES_, name_to_remove)));
+			return true;
+		else
+			print("[eoscm] Name unknown!");
+			return false;
+		end
+	end
+end
+
+
+function remove_buddy(msg)
+	local lst = tolist(string.gmatch(msg, "%S+"));
+	local cmd = lst[1];
+	local name_to_remove = lst[2];
+
+	if #lst ~= 2 or lst[1] ~= "rbud" then
+		print("[eoscm] Command unknown! :(");
+		return false;
 
 	else 
-		if contains(lst, name_to_remove) then
-			print("Successfully removed: " .. table.remove(_NAMES_, find(_NAMES_, name_to_remove)));
+		if contains(_MPLUS_BUDDIES_, name_to_remove) then
+			print("[eoscm] Successfully removed: " .. table.remove(_MPLUS_BUDDIES_, find(_MPLUS_BUDDIES_, name_to_remove)));
+			cm_frame.mplus_frame.mplus_content:SetText(mplus_listing());
+			return true;
 
 		else
-			print("name unknown");
+			print("[eoscm] Name unknown!");
+			return false;
 		end
 	end
 end
@@ -1881,6 +1965,7 @@ function complete_reset()
 end
 
 
+-- misc
 function debug()
 	--print(colors["RED"] .. "oh oh, you shouldnt do this" .. "|r")
 
@@ -1888,7 +1973,6 @@ function debug()
 end
 
 
--- function testeing
 function new_shit()
 	--print("new shit");
 	--print("return: " .. time_diff(5, 17, 12, 2, 5, 18, 11, 3));
@@ -1906,4 +1990,4 @@ end
 
 -- maybe later:
 -- tooltips, its not that easy with checkboxes
--- addon updates available, only solution is to compare own version with other version. if its older show msg. not rly useful with 500~ downloads ^^ 
+-- addon updates available, only solution is to compare own version with other version. if its older show msg. not rly useful with 500~ downloads 
