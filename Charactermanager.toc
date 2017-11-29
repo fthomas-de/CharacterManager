@@ -1,7 +1,7 @@
 ## Interface: 70300
 ## Title: CharacterManager
 ## Author: Eoh
-## Version: .7b
+## Version: .7.c
 ## SavedVariables: _DB_, _NAMES_, _NEXT_RESET_, _OPTIONS_, _TRACKED_CHARS_, _EOSCM_DB_, _MPLUS_BUDDIES_, _MPLUS_KEYS_, _MPLUS_CLASS_
 
 Libs\AceAddon-3.0\AceAddon-3.0.lua

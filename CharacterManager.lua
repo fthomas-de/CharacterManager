@@ -13,7 +13,7 @@ local dungeons = {"Darkheart Thicket-DHT", "Das Finsterherzdickicht-DHT", "Eye o
 local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
 local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
 
-local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "EN ID", "ToV ID", "NH ID", "ToS ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
+local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "EN ID", "ToV ID", "NH ID", "ToS ID", "AtbT ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
 
 local window_shown = false;
 local options_shown = false;
@@ -323,7 +323,7 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 			answer_ping(channel, sender);
 
 		elseif name == "eoscm-update" then
-			--print("received key update from " .. sender .. ": " .. message);
+			--print("[eoscm]: received key update from " .. sender .. ": " .. message);
 
 			-- other server
 			if contains(_MPLUS_BUDDIES_, sender) then
@@ -448,19 +448,23 @@ function init()
 	 	end
 
 	 	if not _DB_[char_name .. "nhraidid"] then
-	 		_DB_[char_name .. "nhraidid"] = "?";
+	 		_DB_[char_name .. "nhraidid"] = "-";
 	 	end
 
 	 	if not _DB_[char_name .. "enraidid"] then
-	 		_DB_[char_name .. "enraidid"] = "?";
+	 		_DB_[char_name .. "enraidid"] = "-";
 	 	end
 
 	 	if not _DB_[char_name .. "tovraidid"] then
-	 		_DB_[char_name .. "tovraidid"] = "?";
+	 		_DB_[char_name .. "tovraidid"] = "-";
 	 	end
 
 	 	if not _DB_[char_name .. "tosraidid"] then
-	 		_DB_[char_name .. "tosraidid"] = "?";
+	 		_DB_[char_name .. "tosraidid"] = "-";
+	 	end
+
+	 	if not _DB_[char_name .. "atbtraidid"] then
+	 		_DB_[char_name .. "atbtraidid"] = "-";
 	 	end
 
 	 	if not _DB_[char_name .. "wqoneshot"] then
@@ -488,7 +492,7 @@ function init_options_window()
 	end
 
 	cm_frame.options_frame = CreateFrame("FRAME", "CharacterManagerOptions", cm_frame, "BasicFrameTemplateWithInset");
- 	cm_frame.options_frame:SetSize(250, (50 * table.getn(option_choices) + 55 + 45 * chars));
+ 	cm_frame.options_frame:SetSize(250, (56 * table.getn(option_choices) + 55 + 45 * chars));
 	cm_frame.options_frame:SetPoint("TOPLEFT", cm_frame, "TOPRIGHT");
 	cm_frame.options_frame:SetScript("OnHide", hide_options);
 
@@ -702,7 +706,7 @@ function init_mplus_window()
 	end
 
 	cm_frame.mplus_frame = CreateFrame("FRAME", "CharacterManagerMPlus", cm_frame, "BasicFrameTemplateWithInset");
-	multi = 45
+	multi = 48
 	text = 125
 	if buddies > 4 then 
  		cm_frame.mplus_frame:SetSize(250, multi*buddies+text);
@@ -915,6 +919,12 @@ function build_content()
 			end
 
 			if _OPTIONS_[option_choices[12]] then
+				--if _DB_[n.."tosraidid"] ~= "-" and _DB_[n.."tosraidid"] ~= "?" then
+					s = s .. colors["WHITE"] .. "Antorus: " .. _DB_[n.."atbtraidid"] .. "|r\n";
+				--end
+			end
+
+			if _OPTIONS_[option_choices[13]] then
 				local wq_oneshot_time = _DB_[n.."wqoneshot"];
 				if wq_oneshot_time == "unknown" then
 					s = s .. colors["WHITE"] .. "WQ 1shot CD unknown :(" .. "|r\n";
@@ -928,7 +938,7 @@ function build_content()
 				end
 			end
 
-			if _OPTIONS_[option_choices[13]] then
+			if _OPTIONS_[option_choices[14]] then
 				if _DB_[n .. "emissary"] and _DB_[n .. "emissary_date"] then
 					s = s .. colors["WHITE"] .. "Emissary chests (estimated): " .. emissary_string(n) .. "|r\n";
 				else
@@ -1270,11 +1280,14 @@ function ping_mplus()
 	SendAddonMessage("eoscm-ping", "ping", "PARTY")
 end
 
+
 --/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "iconqt")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Eoh")
 --/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Jpzxxraucher-Blackrock")
 function answer_ping(channel, sender)
 	--print("answering ping via " .. channel .. " with " .. _DB_[pname .. "bagkey"])
 	if channel == "WHISPER" then
+		print("answering: " .. sender .. ": " .. tostring(_DB_[pname .. "bagkey"]))
 		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel, sender)
 	else
 		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel)
@@ -1765,6 +1778,44 @@ function update_raidid_tos()
 		s = "-";
 	end
 	_DB_[pname.."tosraidid"] = s;
+end
+
+
+--TOS
+function update_raidid_atbt()
+	instances = GetNumSavedInstances();
+	local s = "";
+
+	for i=1, instances do
+		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
+		print(name)
+		if (name == "Antorus, the Burning Throne" or name == "Antorus, der Brennende Thron") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
+			if encounterProgress < numEncounters then
+			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "M |r";
+			end
+
+		elseif (name == "Antorus, the Burning Throne" or name == "Antorus, der Brennende Thron") and (difficultyName == "Heroic" or difficultyName == "Heroisch") and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "H |r";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "H |r";
+			end
+
+		elseif (name == "Antorus, the Burning Throne" or name == "Antorus, der Brennende Thron") and (difficultyName == "Normal" or difficultyName == "Normal") and locked then
+			if encounterProgress < numEncounters then
+				s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "N ";
+			else
+				s = s .. colors["WHITE"] .. tostring(encounterProgress) .. "/" .. tostring(numEncounters) .. "N |r";
+			end
+
+		end
+	end
+	if s == "" then 
+		s = "-";
+	end
+	_DB_[pname.."atbtraidid"] = s;
 end
 
 
