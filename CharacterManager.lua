@@ -9,11 +9,59 @@ local week = 604800;
 local na_reset  = 1486479600;
 local eu_reset  = 1485327600;
 
-local dungeons = {"Darkheart Thicket-DHT", "Das Finsterherzdickicht-DHT", "Eye of Azshara-EoA", "Das Auge Azsharas-EoA", "Halls of Valor-HoV", "Die Hallen der Tapferkeit-HoV", "Neltharion's Lair-NL", "Neltharion's Hort-NL", "Neltharion's Lair-NL", "Black Rook Hold-BRH", "Die Rabenwehr-BRH", "Maw of Souls-MoS", "Der Seelenschlund-MoS", "Vault of the Wardens-VotW", "Das Verließ der Wächterinnen-VotW", "Return to Karazhan: Lower-LK", "Untere Rückkehr nach Karazhan-LK", "Return to Karazhan: Upper-UK", "Obere Rückkehr nach Karazhan-UK", "Cathedral of Eternal Night-CoeN", "Kathedrale der Ewigen Nacht-CoeN", "Court of Stars-CoS", "Der Hof der Sterne-CoS", "The Arcway-TA", "Der Arkus-TA", "Seat of the Triumvirate-SotT", "Sitz des Triumvirats-SotT"};
+local dungeons = {
+	"Darkheart Thicket-DHT", 
+	"Das Finsterherzdickicht-DHT", 
+	"Eye of Azshara-EoA", 
+	"Das Auge Azsharas-EoA", 
+	"Halls of Valor-HoV", 
+	"Die Hallen der Tapferkeit-HoV", 
+	"Neltharion's Lair-NL", 
+	"Neltharion's Hort-NL", 
+	"Neltharion's Lair-NL", 
+	"Black Rook Hold-BRH", 
+	"Die Rabenwehr-BRH", 
+	"Maw of Souls-MoS", 
+	"Der Seelenschlund-MoS", 
+	"Vault of the Wardens-VotW", 
+	"Das Verließ der Wächterinnen-VotW", 
+	"Return to Karazhan: Lower-LK", 
+	"Untere Rückkehr nach Karazhan-LK", 
+	"Return to Karazhan: Upper-UK", 
+	"Obere Rückkehr nach Karazhan-UK", 
+	"Cathedral of Eternal Night-CoeN", 
+	"Kathedrale der Ewigen Nacht-CoeN", 
+	"Court of Stars-CoS", 
+	"Der Hof der Sterne-CoS", 
+	"The Arcway-AW", 
+	"Der Arkus-AW", 
+	"Seat of the Triumvirate-SotT", 
+	"Sitz des Triumvirats-SotT"
+	};
+
 local world_quest_one_shot = {"DEATHKNIGHT", "DEMONHUNTER", "MAGE", "PALADIN", "WARLOCK", "WARRIOR"};
 local world_quest_one_shot_ids = {["DEATHKNIGHT"]=221557, ["DEMONHUNTER"]=221561, ["MAGE"]=221602, ["PALADIN"]=221587, ["WARLOCK"]=219540, ["WARRIOR"]=221597};
 
-local option_choices = {"Mythic+ Info", "Artifact level (AK)", "AK research", "Current seals", "Seals obtained", "Itemlevel", "OResources", "EN ID", "ToV ID", "NH ID", "ToS ID", "AtbT ID", "WQ 1shot", "Emissary Chests", "Minimap Icon"};
+local option_choices = {
+	"Mythic+ Info", 
+	"Artifact level (AK)", 
+	"AK research", 
+	"Current seals", 
+	"Seals obtained", 
+	"Itemlevel", 
+	"OResources", 
+	"EN ID", 
+	"ToV ID", 
+	"NH ID", 
+	"ToS ID", 
+	"AtbT ID", 
+	"WQ 1shot", 
+	"Emissary Chests", 
+	"Argus Follower", 
+	"Argus Quests", 
+	"Wakening Essences", 
+	"Minimap Icon"
+	};
 
 local window_shown = false;
 local options_shown = false;
@@ -212,9 +260,14 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 					["OResources"] = true, 
 					["EN ID"] = true,
 					["ToV ID"] = true,
+					["NH ID"] = true,
+					["ToS ID"] = true,
+					["AtbT ID"] = true,
 					["Nighthold ID"] = true,
 					["WQ 1shot"] = true,
 					["Emissary Chests"] = true,
+					["Argus Follower"] = true,
+					["Argus Quests"] = true,
 				};
 			end
 
@@ -262,9 +315,12 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 
 			-- main window
 			multi = 15
-			text = 155
+			text = 15
+			--text = 155
+
 			--print("tracked chars: " .. tracked_chars .. " opt checked: " .. options_checked)
-		 	cm_frame:SetSize(300, text + (tracked_chars * (multi * options_checked)));
+		 	--cm_frame:SetSize(300, text + (tracked_chars * (multi * options_checked)));
+		 	cm_frame:SetSize(300, 700);
 			cm_frame:SetPoint("CENTER", UIParent, "CENTER");
 			cm_frame:EnableMouse(true);
 			cm_frame:SetMovable(true);
@@ -304,13 +360,45 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 			cm_frame.reload_button:Hide();
 			cm_frame.reload_button:SetScript("OnClick", ReloadUI);
 
-			cm_frame.content = cm_frame:CreateFontString("CM_CONTENT");
-			cm_frame.content:SetPoint("CENTER");
-			cm_frame.content:SetFontObject("GameFontHighlight");
+			--scrollframe 
+			scrollframe = CreateFrame("ScrollFrame", nil, cm_frame) 
+			scrollframe:SetPoint("TOPLEFT", 20, -65) 
+			scrollframe:SetPoint("BOTTOMRIGHT", -10, 50) 
 
-			--cm_frame:SetScript("OnEvent", function(self)
-		    --	self.content:SetText(build_content())
-			--end)
+			local texture = scrollframe:CreateTexture() 
+			texture:SetAllPoints() 
+			texture:SetTexture(.5,.5,.5,1) 
+			cm_frame.scrollframe = scrollframe 
+
+			--scrollbar 
+			scrollbar = CreateFrame("Slider", nil, scrollframe, "UIPanelScrollBarTemplate") 
+			scrollbar:SetPoint("TOPRIGHT", cm_frame, "TOPRIGHT", -13, -65) 
+			scrollbar:SetPoint("BOTTOMRIGHT", cm_frame, "BOTTOMRIGHT", -13, 55) 
+			scrollbar:SetMinMaxValues(1, 2000) 
+			scrollbar:SetValueStep(1) 
+			scrollbar.scrollStep = 1
+			scrollbar:SetValue(0) 
+			scrollbar:SetWidth(16) 
+			scrollbar:SetScript("OnValueChanged", 
+			function (self, value) 
+			self:GetParent():SetVerticalScroll(value) 
+			end) 
+			local scrollbg = scrollbar:CreateTexture(nil, "BACKGROUND") 
+			scrollbg:SetAllPoints(scrollbar) 
+			scrollbg:SetTexture(0, 0, 0, 0.4) 
+			cm_frame.scrollbar = scrollbar 
+			 
+			--content frame 
+			local content = CreateFrame("Frame", nil, scrollframe) 
+			content:SetSize(250, 2000) 
+			
+			local text = content:CreateFontString("CM_CONTENT");
+			text:SetPoint("TOP");
+			text:SetFontObject("GameFontHighlight");
+			
+			scrollframe.content = content 
+			scrollframe.text = text
+			scrollframe:SetScrollChild(content)
 
 			cm_frame:Hide();
 		 	
@@ -319,7 +407,7 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 	 	end
 	elseif event == "CHAT_MSG_ADDON" then
 		if name == "eoscm-ping" and message == "ping" and (channel == "GUILD" or channel == "PARTY" or channel == "WHISPER") then
-			--print("ping received from " .. sender .. " via " .. channel);
+			--print("[eoscm]: ping received from " .. sender .. " via " .. channel);
 			answer_ping(channel, sender);
 
 		elseif name == "eoscm-update" then
@@ -340,11 +428,13 @@ function cm_frame:OnEvent(event, name, message, channel, sender)
 			end			
 		end
 		if self.mplus_frame then 
-			self.mplus_frame.mplus_content:SetText(mplus_listing());
+			self.mplus_frame.mplus_scrollframe.mplus_text:SetText(mplus_listing());
+
 		end
 	else 
 	 	updates();
-	 	self.content:SetText(build_content());
+	 	self.scrollframe.text:SetText(build_content());
+
 	 	if cm_frame.mplus_frame then
 	 		self.mplus_frame.mplus_content:SetText(mplus_listing());
 	 	end
@@ -471,12 +561,36 @@ function init()
 	 		_DB_[char_name .. "wqoneshot"] = -1;
 	 	end
 
-	 	if not _DB_[pname.."emissary"] then
-	 		_DB_[pname.."emissary"] = 0;
+	 	if not _DB_[char_name.."emissary"] then
+	 		_DB_[char_name.."emissary"] = 0;
 	 	end
 
-	  	if not _DB_[pname.."emissary_date"] then
-	 		_DB_[pname.."emissary_date"] = 0;
+	  	if not _DB_[char_name.."emissary_date"] then
+	 		_DB_[char_name.."emissary_date"] = 0;
+	 	end
+
+	 	if _DB_[char_name.."kfollower"] == nil then
+	 		_DB_[char_name.."kfollower"] = "?";
+	 	end
+
+	 	if _DB_[char_name.."vfollower"] == nil then
+	 		_DB_[char_name.."vfollower"] = "?";
+	 	end
+
+	 	if _DB_[char_name.."lfollower"] == nil then
+	 		_DB_[char_name.."lfollower"] = "?";
+	 	end
+
+	 	if _DB_[char_name.."fuel"] == nil then
+	 		_DB_[char_name.."fuel"] = "?";
+	 	end
+
+	 	if _DB_[char_name.."invasion"] == nil then
+	 		_DB_[char_name.."invasion"] = "?";
+	 	end
+
+	 	if not _DB_[char_name .. "wak_ess"] then
+	 		_DB_[char_name .. "wak_ess"] = 0;
 	 	end
 	 end
 end
@@ -492,7 +606,7 @@ function init_options_window()
 	end
 
 	cm_frame.options_frame = CreateFrame("FRAME", "CharacterManagerOptions", cm_frame, "BasicFrameTemplateWithInset");
- 	cm_frame.options_frame:SetSize(250, (56 * table.getn(option_choices) + 55 + 45 * chars));
+ 	cm_frame.options_frame:SetSize(250, (50 * table.getn(option_choices) + 55 + 45 * chars));
 	cm_frame.options_frame:SetPoint("TOPLEFT", cm_frame, "TOPRIGHT");
 	cm_frame.options_frame:SetScript("OnHide", hide_options);
 
@@ -650,8 +764,51 @@ function init_options_window()
 		_OPTIONS_[self:GetName()] = self:GetChecked();
 	end)
 
+	cm_frame.options_frame.button14 = CreateFrame("CheckButton", option_choices[14], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button14:SetPoint("TOP", cm_frame.options_frame.button13, "BOTTOM");
+	cm_frame.options_frame.button14:SetText(retarded_space_solutions_ltd .. option_choices[14]);
+	cm_frame.options_frame.button14:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[14]] then
+		cm_frame.options_frame.button14:Click();
+	end
+	cm_frame.options_frame.button14:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
 
-	local last_button = cm_frame.options_frame.button13;
+	cm_frame.options_frame.button15 = CreateFrame("CheckButton", option_choices[15], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button15:SetPoint("TOP", cm_frame.options_frame.button14, "BOTTOM");
+	cm_frame.options_frame.button15:SetText(retarded_space_solutions_ltd .. option_choices[15]);
+	cm_frame.options_frame.button15:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[15]] then
+		cm_frame.options_frame.button15:Click();
+	end
+	cm_frame.options_frame.button15:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+	cm_frame.options_frame.button16 = CreateFrame("CheckButton", option_choices[16], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button16:SetPoint("TOP", cm_frame.options_frame.button15, "BOTTOM");
+	cm_frame.options_frame.button16:SetText(retarded_space_solutions_ltd .. option_choices[16]);
+	cm_frame.options_frame.button16:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[16]] then
+		cm_frame.options_frame.button16:Click();
+	end
+	cm_frame.options_frame.button16:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+	cm_frame.options_frame.button17 = CreateFrame("CheckButton", option_choices[17], cm_frame.options_frame, "UICheckButtonTemplate")
+	cm_frame.options_frame.button17:SetPoint("TOP", cm_frame.options_frame.button16, "BOTTOM");
+	cm_frame.options_frame.button17:SetText(retarded_space_solutions_ltd .. option_choices[17]);
+	cm_frame.options_frame.button17:SetNormalFontObject("GameFontNormalLarge");
+	if _OPTIONS_[option_choices[17]] then
+		cm_frame.options_frame.button17:Click();
+	end
+	cm_frame.options_frame.button17:SetScript("OnClick", function(self)
+		_OPTIONS_[self:GetName()] = self:GetChecked();
+	end)
+
+	local last_button = cm_frame.options_frame.button17;
 	for idx, item in ipairs(_NAMES_) do
 
 		if _TRACKED_CHARS_[item] ~= nil then
@@ -706,20 +863,15 @@ function init_mplus_window()
 	end
 
 	cm_frame.mplus_frame = CreateFrame("FRAME", "CharacterManagerMPlus", cm_frame, "BasicFrameTemplateWithInset");
-	multi = 48
-	text = 125
-	if buddies > 4 then 
- 		cm_frame.mplus_frame:SetSize(250, multi*buddies+text);
- 	else 
- 		cm_frame.mplus_frame:SetSize(250, 425);
- 	end
+	cm_frame.mplus_frame:SetSize(250, 700);
+
 	cm_frame.mplus_frame:SetPoint("TOPRIGHT", cm_frame, "TOPLEFT");
 	cm_frame.mplus_frame:SetScript("OnHide", hide_options);
 
 	cm_frame.mplus_frame.sync_button = CreateFrame("Button", "sync_button", cm_frame.mplus_frame, "GameMenuButtonTemplate");
 	cm_frame.mplus_frame.sync_button:SetPoint("BOTTOMLEFT", cm_frame.mplus_frame, "BOTTOMLEFT", 10, 10);
 	cm_frame.mplus_frame.sync_button:SetSize(95, 25);
-	cm_frame.mplus_frame.sync_button:SetText("grp to list");
+	cm_frame.mplus_frame.sync_button:SetText("1. Grp to list");
 	cm_frame.mplus_frame.sync_button:SetNormalFontObject("GameFontNormalLarge");
 	cm_frame.mplus_frame.sync_button:SetHighlightFontObject("GameFontHighlightLarge");
 	cm_frame.mplus_frame.sync_button:SetScript("OnClick", sync_group);
@@ -728,7 +880,7 @@ function init_mplus_window()
 	cm_frame.mplus_frame.refresh_button = CreateFrame("Button", "refresh_button", cm_frame.mplus_frame, "GameMenuButtonTemplate");
 	cm_frame.mplus_frame.refresh_button:SetPoint("BOTTOMRIGHT", cm_frame.mplus_frame, "BOTTOMRIGHT", -13, 10);
 	cm_frame.mplus_frame.refresh_button:SetSize(85, 25);
-	cm_frame.mplus_frame.refresh_button:SetText("get keys");
+	cm_frame.mplus_frame.refresh_button:SetText("2. Get keys");
 	cm_frame.mplus_frame.refresh_button:SetNormalFontObject("GameFontNormalLarge");
 	cm_frame.mplus_frame.refresh_button:SetHighlightFontObject("GameFontHighlightLarge");
 	cm_frame.mplus_frame.refresh_button:SetScript("OnClick", ping_mplus);
@@ -743,10 +895,46 @@ function init_mplus_window()
 	cm_frame.mplus_frame.reset_button:SetScript("OnClick", reset_mplus);
 	cm_frame.mplus_frame.reset_button:Hide();
 
-	cm_frame.mplus_frame.mplus_content = cm_frame.mplus_frame:CreateFontString("MPLUS_CONTENT", "OVERLAY");
-	cm_frame.mplus_frame.mplus_content:SetPoint("TOP", cm_frame.mplus_frame, "TOP", 0, -75);
-	cm_frame.mplus_frame.mplus_content:SetFontObject("GameFontHighlight");
-	cm_frame.mplus_frame.mplus_content:SetText(mplus_listing());	
+	--scrollframe 
+	mplus_scrollframe = CreateFrame("ScrollFrame", nil, cm_frame.mplus_frame) 
+	mplus_scrollframe:SetPoint("TOPLEFT", 30, -75 ) 
+	mplus_scrollframe:SetPoint("BOTTOMRIGHT", -10, 50) 
+
+	local mplus_texture = mplus_scrollframe:CreateTexture() 
+	mplus_texture:SetAllPoints() 
+	mplus_texture:SetTexture(.5,.5,.5,1) 
+	cm_frame.mplus_frame.mplus_scrollframe = mplus_scrollframe 
+
+	--scrollbar 
+	mplus_scrollbar = CreateFrame("Slider", nil, mplus_scrollframe, "UIPanelScrollBarTemplate") 
+	mplus_scrollbar:SetPoint("TOPRIGHT", cm_frame.mplus_frame, "TOPRIGHT", -13, -55) 
+	mplus_scrollbar:SetPoint("BOTTOMRIGHT", cm_frame.mplus_frame, "BOTTOMRIGHT", -13, 55) 
+	mplus_scrollbar:SetMinMaxValues(1, 2000) 
+	mplus_scrollbar:SetValueStep(1) 
+	mplus_scrollbar.scrollStep = 1
+	mplus_scrollbar:SetValue(0) 
+	mplus_scrollbar:SetWidth(16) 
+	mplus_scrollbar:SetScript("OnValueChanged", 
+	function (self, value) 
+	self:GetParent():SetVerticalScroll(value) 
+	end) 
+	local scrollbg = mplus_scrollbar:CreateTexture(nil, "BACKGROUND") 
+	scrollbg:SetAllPoints(mplus_scrollbar) 
+	scrollbg:SetTexture(0, 0, 0, 0.4) 
+	cm_frame.mplus_frame.mplus_scrollbar = mplus_scrollbar 
+	 
+	--content frame 
+	local mplus_content = CreateFrame("Frame", nil, mplus_scrollframe) 
+	mplus_content:SetSize(200, 2000) 
+	
+	local mplus_text = mplus_content:CreateFontString("MPLUS_CONTENT")
+	mplus_text:SetPoint("TOP")
+	mplus_text:SetFontObject("GameFontHighlight")
+	mplus_text:SetText(mplus_listing())
+
+	mplus_scrollframe.mplus_content = mplus_content 
+	mplus_scrollframe.mplus_text = mplus_text
+	mplus_scrollframe:SetScrollChild(mplus_content)
 end
 
 
@@ -894,6 +1082,14 @@ function build_content()
 				s = s .. colors["WHITE"] .. "OResources: " .. _DB_[n.."orderres"] .. "|r\n";
 			end
 
+			if _OPTIONS_[option_choices[17]] then
+				if _DB_[n.."wak_ess"] < 1000 then
+					s = s .. colors["WHITE"] .. "Wakening Essences: " .. _DB_[n.."wak_ess"] .. "|r\n";
+				else
+					s = s .. colors["WHITE"] .. "Wakening Essences:|r " .. colors["GREEN"] .. _DB_[n.."wak_ess"] .. "|r\n";
+				end
+			end
+
 			if _OPTIONS_[option_choices[8]] then
 				--if _DB_[n.."enraidid"] ~= "-" and _DB_[n.."enraidid"] ~= "?" then
 					s = s .. colors["WHITE"] .. "Emerald Nightmare: " .. _DB_[n.."enraidid"] .. "|r\n";
@@ -946,6 +1142,63 @@ function build_content()
 				end
 			end
 
+			if _OPTIONS_[option_choices[15]] then
+				s = s .. "Follower (150): "
+
+				-- krokul
+				if _DB_[n .. "kfollower"] == "?" then 
+					s = s .. "? ";
+				elseif not _DB_[n .. "kfollower"] then
+					s = s .. "Krok ";
+				else
+					s = s .. "X ";
+				end
+
+				-- void
+				if _DB_[n .. "vfollower"] == "?" then 
+					s = s .. "/ ? ";
+				elseif not _DB_[n .. "vfollower"] then
+					s = s .. "/ Void ";
+				else
+					s = s .. "/ X ";
+				end
+
+				-- light
+				if _DB_[n .. "lfollower"] == "?" then 
+					s = s .. "/ ?";
+				elseif not _DB_[n .. "lfollower"] then
+					s = s .. "/ Light";
+				else
+					s = s .. "/ X";
+				end
+
+				s = s .. "\n"
+			end
+
+			if _OPTIONS_[option_choices[16]] then
+				s = s .. "3 Inv / 50 Arg Quest: "
+
+				-- fuel
+				if _DB_[n .. "invasion"] == "?" then
+					s = s .. "? ";
+				elseif _DB_[n .. "invasion"] then
+					s = s .. "X ";
+				else
+					s = s .. colors["WHITE"] .. "Open|r ";
+				end
+
+				-- invasion
+				if _DB_[n .. "fuel"] == "?" then
+					s = s .. "/ ?";
+				elseif _DB_[n .. "fuel"] then
+					s = s .. "/ X";
+				else
+					s = s .. "/ " .. colors["WHITE"] .. "Open|r "
+				end
+
+				s = s .. "\n"
+			end
+
 			if table.getn(_NAMES_) > 1 and i ~= table.getn(_NAMES_) then 
 				s = s .. "\n";
 			end
@@ -969,7 +1222,7 @@ function mplus_listing()
 		end
 	end
 
-	s = s .. "\n\n" .. colors["RED"] .. "Synchronize keys with \nyour m+ grp!\nEveryone needs this addon.\n\nUse '/eoscm rbud NAME'\nto remove a single name.|r"
+	s = s .. "\n\n" .. colors["RED"] .. "Synchronize keys with your m+ \ngrp. Everyone needs this addon. \nX-realm sync only works in groups.\n\nUse '/eoscm rbud NAME'\nto remove a single name.|r"
 
 	return s
 end
@@ -1152,18 +1405,20 @@ end
 
 
 function count_open_emissary_quests()
-	-- wardens, valajar, nightfallen, kirin tor, dreamweaver, highmountain, farondis, argussian, ligths
-	local emissary_quest_ids = {42422, 42234, 42421, 43179, 42170, 42233, 42420, 48642, 48639}
+	-- wardens, valajar, nightfallen, kirin tor, dreamweaver, highmountain, farondis, legionfall, argussian, ligths
+	local emissary_quest_ids = {42422, 42234, 42421, 43179, 42170, 42233, 42420, 48641, 48642, 48639}
 	local count = 0;
 
 	local num_entries, num_quests = GetNumQuestLogEntries();
 	for i=1,num_entries do
 		-- title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isStory, isHidden 
-		local _, _, _, _, _, _, _, quest_id, _, _, _, _, _, _, _ = GetQuestLogTitle(i);
+		local title, _, _, _, _, _, _, quest_id, _, _, _, _, _, _, _ = GetQuestLogTitle(i);
+
 		if contains(emissary_quest_ids, tonumber(quest_id)) then
 			count = count + 1;
 		end			
 	end
+
 	return count;
 end
 
@@ -1278,19 +1533,36 @@ function ping_mplus()
 	--print("pinging...")
 	SendAddonMessage("eoscm-ping", "ping", "GUILD")
 	SendAddonMessage("eoscm-ping", "ping", "PARTY")
+
+	for _, buddy in ipairs(_MPLUS_BUDDIES_) do
+		--print("[eoscm]: whispering: " .. buddy)
+		SendAddonMessage("eoscm-ping", "ping", "WHISPER", buddy)
+	end	
 end
 
 
 --/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "iconqt")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "icon")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Lf-Blackhand")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Iqon-Blackhand")
 --/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Eoh")
+--/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Eoh-Thrall")
 --/run SendAddonMessage("eoscm-ping", "ping", "WHISPER", "Jpzxxraucher-Blackrock")
 function answer_ping(channel, sender)
 	--print("answering ping via " .. channel .. " with " .. _DB_[pname .. "bagkey"])
 	if channel == "WHISPER" then
-		print("answering: " .. sender .. ": " .. tostring(_DB_[pname .. "bagkey"]))
+		--print("[eoscm]: answering: " .. sender .. ": " .. tostring(_DB_[pname .. "bagkey"]))
+		--for _, n in ipairs(_NAMES_) do
+			--print("sending: " .. n)
 		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel, sender)
+		--end
+
 	else
+		--for _, n in ipairs(_NAMES_) do
+			--print("sending: " .. n)
 		SendAddonMessage("eoscm-update", tostring(_DB_[pname .. "bagkey"]), channel)
+		--end
+
 	end
 end
 
@@ -1301,7 +1573,7 @@ function sync_group()
 		if name ~= pname then
 			if not contains(_MPLUS_BUDDIES_, name) then 
 				buddy_class = UnitClass(name);
-				print("[eoscm] adding: " .. name .. " as " .. colors[buddy_class] .. buddy_class .. "|r")
+				--print("[eoscm] adding: " .. name .. " as " .. colors[buddy_class] .. buddy_class .. "|r")
 				table.insert(_MPLUS_BUDDIES_, name)
 				_MPLUS_CLASS_[name] = buddy_class
 			end
@@ -1326,25 +1598,29 @@ end
 -- updater
 function updates()
 	--print("updating...")
-	check_for_id_reset();
+	check_for_id_reset()
 
-	seals_update();
-	seals_obtained_update();
-	level_update();
-	orderres_update();
-	itemlevel_update();
-	artifactlevel_update();
-	bagkey_update();
-	hkey_update();
-	akremain_update();
-	update_raidid();
-	update_raidid_en();
-	update_raidid_tov();
-	update_raidid_tos();
-	update_wqoneshot();
-	update_emissary();
+	seals_update()
+	seals_obtained_update()
+	level_update()
+	orderres_update()
+	itemlevel_update()
+	artifactlevel_update()
+	bagkey_update()
+	hkey_update()
+	akremain_update()
+	update_raidid()
+	update_raidid_en()
+	update_raidid_tov()
+	update_raidid_tos()
+	update_raidid_atbt()
+	update_wqoneshot()
+	update_emissary()
+	update_follower()
+	update_argus_quest()
+	update_wakening_essences()
 
-	new_shit();
+	new_shit()
 end
 
 
@@ -1425,7 +1701,7 @@ function seals_obtained_update()
 		seals = seals + 1;
 	end
 
-	for i,q in ipairs({43892,43893,43894,43895,43896,43897}) do 
+	for i,q in ipairs({43892,43893,43894,43895,43896,43897,47851,47864,47865}) do 
 		if (IsQuestFlaggedCompleted(q)) then 
 			seals = seals + 1;
 		end 
@@ -1781,14 +2057,13 @@ function update_raidid_tos()
 end
 
 
---TOS
+--ATBT
 function update_raidid_atbt()
 	instances = GetNumSavedInstances();
 	local s = "";
 
 	for i=1, instances do
 		name, id, reset, difficulty, locked, extended, instanceIDMostSig, isRaid, maxPlayers, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i);
-		print(name)
 		if (name == "Antorus, the Burning Throne" or name == "Antorus, der Brennende Thron") and (difficultyName == "Mythic" or difficultyName == "Mythisch") and locked then
 			if encounterProgress < numEncounters then
 			 	s = s .. colors["RED"] .. tostring(encounterProgress) .. "|r" .. colors["WHITE"] .. "/" .. tostring(numEncounters) .. "M |r";
@@ -1902,6 +2177,40 @@ function update_emissary()
 end
 
 
+function update_follower()
+	if not _DB_[pname .. "kfollower"] or _DB_[pname .. "kfollower"] == "?" then 
+		_DB_[pname .. "kfollower"] = IsQuestFlaggedCompleted(48910)
+	end
+
+	if not _DB_[pname .. "vfollower"] or _DB_[pname .. "vfollower"] == "?" then 
+		_DB_[pname .. "vfollower"] = IsQuestFlaggedCompleted(48911)
+	end
+
+	if not _DB_[pname .. "lfollower"] or _DB_[pname .. "lfollower"] == "?" then 
+		_DB_[pname .. "lfollower"] = IsQuestFlaggedCompleted(48912)
+	end
+end
+
+
+function update_argus_quest()
+	if not _DB_[pname .. "fuel"] or _DB_[pname .. "fuel"] == "?" then 
+		_DB_[pname .. "fuel"] = IsQuestFlaggedCompleted(48799) -- Fuel of a Doomed World
+	end
+
+	if not _DB_[pname .. "invasion"] or _DB_[pname .. "invasion"] == "?" then 
+		_DB_[pname .. "invasion"] = IsQuestFlaggedCompleted(49293) -- Invasion Point Offensive
+	end
+end
+
+
+function update_wakening_essences()
+	_, amount, _, _, _, _, _, _ = GetCurrencyInfo(1533);
+
+	if amount then 
+		_DB_[pname.."wak_ess"] = amount;
+	end
+end
+
 -- cmd functions
 function remove_character(msg)
 	local lst = tolist(string.gmatch(msg, "%S+"));
@@ -1959,6 +2268,22 @@ function weekly_reset(msg)
 
 		-- reset raid ids
 		_DB_[item.."nhraidid"] = "-";
+		_DB_[item.."tosraidid"] = "-";
+		_DB_[item.."tovraidid"] = "-";
+		_DB_[item.."atbtraidid"] = "-";
+
+		-- reset follower
+		_DB_[item.."kfollower"] = "?";
+		_DB_[item.."vfollower"] = "?";
+		_DB_[item.."lfollower"] = "?";
+
+		-- reset argus quests
+		_DB_[item.."fuel"] = "?";
+		_DB_[item.."invasion"] = "?";
+
+		-- buddy key reset
+		_MPLUS_KEYS_ = nil
+
 	end
 end
 
